@@ -27,9 +27,9 @@ type Ruminate struct {
 }
 
 type Iterator struct {
-	Selector string            `yaml:"selector"`
-	Probes   map[string]string `yaml:"probes"`
-	Iterator []Iterator        `yaml:"iterators"`
+	Selector  string            `yaml:"selector"`
+	Probes    map[string]string `yaml:"probes"`
+	Iterators []Iterator        `yaml:"iterators"`
 }
 
 func Conf() (Config, error) {

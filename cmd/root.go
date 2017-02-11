@@ -21,7 +21,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cfgFile string
+var (
+	cfgFile string
+	debug   bool
+)
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -43,4 +46,5 @@ func Execute() {
 
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&cfgFile, "cfg", "c", "$HOME/ruminant.yaml", "config file (default is $HOME/ruminant.yaml)")
+	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Print debug output")
 }

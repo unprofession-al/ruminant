@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -40,14 +39,11 @@ var vomitCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		store := make(map[string]string)
-		out, err := Process(j, c.Ruminate.Iterator, store)
+		_, err = Process(j, c.Ruminate.Iterator, store, 0)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for _, point := range out {
-			fmt.Println(point)
-		}
 	},
 }
 

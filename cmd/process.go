@@ -1,14 +1,33 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"strings"
 
+	"github.com/mgutz/ansi"
 	"github.com/nytlabs/gojee"
 )
 
-func Process(j []byte, i Iterator, store map[string]string) ([]map[string]string, error) {
+func Process(j []byte, i Iterator, inherited map[string]string, depht int) ([]map[string]string, error) {
 	var results []map[string]string
-	results = append(results, store)
+	indent := strings.Repeat("   ", depht)
+	indent = indent + "|"
+
+	if debug {
+		var prettyJSON bytes.Buffer
+		err := json.Indent(&prettyJSON, j, "", "   ")
+		if err != nil {
+			return results, err
+		}
+
+		scanner := bufio.NewScanner(strings.NewReader(prettyJSON.String()))
+		for scanner.Scan() {
+			fmt.Println(indent, ansi.Color(scanner.Text(), "red"))
+		}
+	}
 
 	selected, err := query(j, i.Selector)
 	if err != nil {
@@ -23,6 +42,10 @@ func Process(j []byte, i Iterator, store map[string]string) ([]map[string]string
 	}
 
 	for _, element := range elements {
+		store := make(map[string]string)
+		for k, v := range inherited {
+			store[k] = v
+		}
 		elem, err := json.Marshal(element)
 		if err != nil {
 			return results, err
@@ -36,14 +59,23 @@ func Process(j []byte, i Iterator, store map[string]string) ([]map[string]string
 			store[key] = string(out)
 		}
 
-		for _, iterator := range i.Iterator {
-			processed, err := Process(elem, iterator, store)
-			if err != nil {
-				return results, err
+		if debug {
+			fmt.Println(indent, ansi.Color(fmt.Sprintf("%d", store), "green"))
+		}
+
+		if len(i.Iterators) > 0 {
+			for _, iterator := range i.Iterators {
+				processed, err := Process(elem, iterator, store, depht+1)
+				if err != nil {
+					return results, err
+				}
+				results = append(results, processed...)
 			}
-			results = append(results, processed...)
+		} else {
+			results = append(results, store)
 		}
 	}
+
 	return results, nil
 }
 
