@@ -4,15 +4,17 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mgutz/ansi"
 	"github.com/nytlabs/gojee"
 )
 
-func Process(j []byte, i Iterator, inherited map[string]string, depht int) ([]map[string]string, error) {
-	var results []map[string]string
+func Process(j []byte, i Iterator, inherited Point, depht int) ([]Point, error) {
+	var results []Point
 	indent := strings.Repeat("   ", depht)
 	indent = indent + "|"
 
@@ -29,7 +31,7 @@ func Process(j []byte, i Iterator, inherited map[string]string, depht int) ([]ma
 		}
 	}
 
-	selected, err := query(j, i.Selector)
+	selected, err := queryBytes(j, i.Selector)
 	if err != nil {
 		return results, err
 	}
@@ -42,64 +44,84 @@ func Process(j []byte, i Iterator, inherited map[string]string, depht int) ([]ma
 	}
 
 	for _, element := range elements {
-		store := make(map[string]string)
-		for k, v := range inherited {
-			store[k] = v
-		}
+		point := inherited.Copy()
 		elem, err := json.Marshal(element)
 		if err != nil {
 			return results, err
 		}
 
-		for key, selector := range i.Probes {
+		if i.Time != "" {
+			out, err := query(elem, i.Time)
+			if err != nil {
+				return results, err
+			}
+			if f, ok := out.(float64); ok {
+				point.Timestamp = time.Unix(int64(f)/1000, 0)
+			} else {
+				return results, errors.New("Time could not be read")
+			}
+		}
+
+		for key, selector := range i.Values {
 			out, err := query(elem, selector)
 			if err != nil {
 				return results, err
 			}
-			store[key] = string(out)
+			point.Values[key] = out
 		}
 
-		if debug {
-			fmt.Println(indent, ansi.Color(fmt.Sprintf("%d", store), "green"))
+		for key, selector := range i.Tags {
+			out, err := queryBytes(elem, selector)
+			if err != nil {
+				return results, err
+			}
+			point.Tags[key] = string(out)
 		}
 
 		if len(i.Iterators) > 0 {
 			for _, iterator := range i.Iterators {
-				processed, err := Process(elem, iterator, store, depht+1)
+				processed, err := Process(elem, iterator, point, depht+1)
 				if err != nil {
 					return results, err
 				}
 				results = append(results, processed...)
 			}
 		} else {
-			results = append(results, store)
+			results = append(results, point)
 		}
 	}
 
 	return results, nil
 }
 
-func query(j []byte, query string) ([]byte, error) {
-	var umsg jee.BMsg
-	l, err := jee.Lexer(query)
+func queryBytes(j []byte, q string) ([]byte, error) {
+	result, err := query(j, q)
 	if err != nil {
 		return []byte{}, err
+	}
+	return json.Marshal(result)
+}
+
+func query(j []byte, q string) (interface{}, error) {
+	var umsg jee.BMsg
+	l, err := jee.Lexer(q)
+	if err != nil {
+		return nil, err
 	}
 
 	tree, err := jee.Parser(l)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
 	err = json.Unmarshal(j, &umsg)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
 	result, err := jee.Eval(tree, umsg)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
-
-	return json.Marshal(result)
+	return result, nil
 }

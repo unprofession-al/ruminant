@@ -15,7 +15,7 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -24,29 +24,43 @@ import (
 var gulpCmd = &cobra.Command{
 	Use:   "gulp",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("gulp called")
+		c, err := Conf()
+		if err != nil {
+			log.Fatal(err)
+		}
+		es := NewElasticSearch(c.Regurgitate.Proto, c.Regurgitate.Host, c.Regurgitate.Port)
+		result, err := es.Query(c.Regurgitate.Index, c.Regurgitate.Type, c.Regurgitate.Query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		j, err := result.AggsAsJson()
+		if err != nil {
+			log.Fatal(err)
+		}
+		p := Point{
+			Tags:        make(map[string]string),
+			Values:      make(map[string]interface{}),
+			Measurement: c.Gulp.Series,
+		}
+		out, err := Process(j, c.Ruminate.Iterator, p, 0)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Port)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = i.Write(out)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(gulpCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// gulpCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// gulpCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
+	RootCmd.AddCommand(vomitCmd)
 }
