@@ -113,6 +113,7 @@ func (i Influx) GetLatestInSeries(series, indicator string) (t time.Time, err er
 		return
 	} else {
 		if response.Error() != nil {
+			err = response.Error()
 			return
 		}
 		res = response.Results
@@ -120,6 +121,7 @@ func (i Influx) GetLatestInSeries(series, indicator string) (t time.Time, err er
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New("Latest Timestamp could not be found")
+			return
 		}
 	}()
 	t, err = time.Parse(time.RFC3339, res[0].Series[0].Values[0][0].(string))

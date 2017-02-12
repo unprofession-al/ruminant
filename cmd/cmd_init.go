@@ -60,7 +60,7 @@ var initCmd = &cobra.Command{
 		// Create a point and add to batch
 		tags := map[string]string{"ruminant_created": "true"}
 		fields := map[string]interface{}{
-			c.Gulp.LatestIndicator: 0,
+			c.Gulp.LatestIndicator: 0.0,
 		}
 		dur := time.Hour * 24 * -1
 		pt, err := client.NewPoint(c.Gulp.Series, tags, fields, time.Now().Add(dur))

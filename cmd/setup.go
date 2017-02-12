@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"log"
 )
@@ -20,6 +21,7 @@ func Setup(c Config) ([]Point, Influx) {
 		log.Print("Could not get latest timestamp in series")
 		log.Fatal(err)
 	}
+	log.Print(fmt.Sprintf("Latest entry at %v", latest))
 
 	t := template.Must(template.New("t1").Parse(c.Regurgitate.Query))
 

@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -23,7 +24,7 @@ import (
 // gulpCmd represents the gulp command
 var gulpCmd = &cobra.Command{
 	Use:   "gulp",
-	Short: "A brief description of your command",
+	Short: "Feed data to InfluxDB",
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf()
 		if err != nil {
@@ -38,6 +39,7 @@ var gulpCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
+		log.Print(fmt.Sprintf("%d data points saved", len(out)))
 	},
 }
 
