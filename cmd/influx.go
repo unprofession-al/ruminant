@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"text/tabwriter"
 	"time"
 
 	"github.com/influxdata/influxdb/client/v2"
@@ -12,6 +15,48 @@ type Point struct {
 	Tags        map[string]string
 	Values      map[string]interface{}
 	Measurement string
+}
+
+func (p Point) String() string {
+	out := new(bytes.Buffer)
+	timestamp := p.Timestamp.Format("2006-01-02 15:04:05")
+
+	const padding = 1
+
+	var valuesStr []string
+	for key, val := range p.Values {
+		valuesStr = append(valuesStr, fmt.Sprintf("%s: %v", key, val))
+	}
+
+	var tagsStr []string
+	for key, val := range p.Tags {
+		tagsStr = append(tagsStr, fmt.Sprintf("%s: %s", key, val))
+	}
+
+	var iterations int
+
+	if len(tagsStr) > len(valuesStr) {
+		iterations = len(tagsStr)
+	} else {
+		iterations = len(valuesStr)
+	}
+
+	w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
+	fmt.Fprintf(w, "%s \tTags \tValues \t %s\n", p.Measurement, timestamp)
+	for i := 0; i < iterations; i++ {
+		tag := ""
+		if len(tagsStr) > i {
+			tag = tagsStr[i]
+		}
+		value := ""
+		if len(valuesStr) > i {
+			value = valuesStr[i]
+		}
+		fmt.Fprintf(w, "\t%s \t%s \t\n", tag, value)
+	}
+	w.Flush()
+
+	return string(out.String())
 }
 
 func (p Point) Copy() Point {
@@ -55,6 +100,49 @@ func NewInflux(host, proto, db, user, pass string, port int) (Influx, error) {
 		Client: c,
 	}
 	return i, nil
+}
+
+func (i Influx) GetLatestInSeries(series, indicator string) (t time.Time, err error) {
+	var res []client.Result
+	q := client.Query{
+		Command:  fmt.Sprintf("SELECT last(%s) FROM %s", indicator, series),
+		Database: i.DB,
+	}
+	response, err := i.Client.Query(q)
+	if err != nil {
+		return
+	} else {
+		if response.Error() != nil {
+			return
+		}
+		res = response.Results
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("Latest Timestamp could not be found")
+		}
+	}()
+	t, err = time.Parse(time.RFC3339, res[0].Series[0].Values[0][0].(string))
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (i Influx) Query(cmd string) (res []client.Result, err error) {
+	q := client.Query{
+		Command:  cmd,
+		Database: i.DB,
+	}
+	if response, err := i.Client.Query(q); err == nil {
+		if response.Error() != nil {
+			return res, response.Error()
+		}
+		res = response.Results
+	} else {
+		return res, err
+	}
+	return res, nil
 }
 
 func (i Influx) Write(points []Point) error {

@@ -3,10 +3,12 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type EsResponse struct {
@@ -72,5 +74,14 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 		return esr, err
 	}
 
+	if esr.Shards.Failed > 0 {
+		return esr, errors.New(fmt.Sprintf("%d of %d shards failed while executing query", esr.Shards.Failed, esr.Shards.Total))
+	}
+
 	return esr, nil
+}
+
+func ToEsTimestamp(t time.Time) int64 {
+	i := t.Unix() * 1000
+	return i
 }

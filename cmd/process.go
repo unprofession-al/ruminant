@@ -75,7 +75,8 @@ func Process(j []byte, i Iterator, inherited Point, depht int) ([]Point, error) 
 			if err != nil {
 				return results, err
 			}
-			point.Tags[key] = string(out)
+			trimmed := strings.Trim(string(out), "\"")
+			point.Tags[key] = trimmed
 		}
 
 		if len(i.Iterators) > 0 {
