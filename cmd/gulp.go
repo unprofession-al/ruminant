@@ -62,5 +62,5 @@ var gulpCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(vomitCmd)
+	RootCmd.AddCommand(gulpCmd)
 }
