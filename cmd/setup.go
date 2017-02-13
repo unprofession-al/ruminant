@@ -16,12 +16,13 @@ func Setup(c Config) ([]Point, Influx) {
 	}
 
 	log.Print("Getting latest timestamp from InfluxDB")
-	latest, err := i.GetLatestInSeries(c.Gulp.Series, c.Gulp.LatestIndicator)
+	latest, err := i.GetLatestInSeries(c.Gulp.Series)
 	if err != nil {
 		log.Print("Could not get latest timestamp in series")
 		log.Fatal(err)
 	}
-	log.Print(fmt.Sprintf("Latest entry at %v", latest))
+	timestamp := latest.Format("2006-01-02 15:04:05")
+	log.Print(fmt.Sprintf("Latest entry at %s", timestamp))
 
 	t := template.Must(template.New("t1").Parse(c.Regurgitate.Query))
 

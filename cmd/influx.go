@@ -102,10 +102,12 @@ func NewInflux(host, proto, db, user, pass string, port int) (Influx, error) {
 	return i, nil
 }
 
-func (i Influx) GetLatestInSeries(series, indicator string) (t time.Time, err error) {
+const LatestIndicator = "RUMINANT_LAST_RUN"
+
+func (i Influx) GetLatestInSeries(series string) (t time.Time, err error) {
 	var res []client.Result
 	q := client.Query{
-		Command:  fmt.Sprintf("SELECT last(%s) FROM %s", indicator, series),
+		Command:  fmt.Sprintf("SELECT last(%s) FROM %s", LatestIndicator, series),
 		Database: i.DB,
 	}
 	response, err := i.Client.Query(q)
@@ -156,18 +158,30 @@ func (i Influx) Write(points []Point) error {
 		return err
 	}
 
+	var newest time.Time
+	series := ""
 	for _, p := range points {
-		pt, err := client.NewPoint(
-			p.Measurement,
-			p.Tags,
-			p.Values,
-			p.Timestamp,
-		)
+		pt, err := client.NewPoint(p.Measurement, p.Tags, p.Values, p.Timestamp)
 		if err != nil {
 			return err
 		}
+		if p.Timestamp.After(newest) {
+			newest = p.Timestamp
+		}
+		if series == "" {
+			series = p.Measurement
+		}
 		bp.AddPoint(pt)
 	}
+
+	tags := map[string]string{"ruminant": "system"}
+	fields := map[string]interface{}{LatestIndicator: "write"}
+	p, err := client.NewPoint(series, tags, fields, newest)
+	if err != nil {
+		return err
+	}
+	bp.AddPoint(p)
+
 	if err := i.Client.Write(bp); err != nil {
 		return err
 	}

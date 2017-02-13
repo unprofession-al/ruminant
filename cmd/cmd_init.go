@@ -57,13 +57,10 @@ var initCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		// Create a point and add to batch
-		tags := map[string]string{"ruminant_created": "true"}
-		fields := map[string]interface{}{
-			c.Gulp.LatestIndicator: 0.0,
-		}
-		dur := time.Hour * 24 * -1
-		pt, err := client.NewPoint(c.Gulp.Series, tags, fields, time.Now().Add(dur))
+		tags := map[string]string{"ruminant": "system"}
+		fields := map[string]interface{}{LatestIndicator: "init"}
+		timestamp := time.Now().Add(-(time.Hour * 24))
+		pt, err := client.NewPoint(c.Gulp.Series, tags, fields, timestamp)
 		if err != nil {
 			log.Fatal(err)
 		}
