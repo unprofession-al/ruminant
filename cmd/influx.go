@@ -42,7 +42,7 @@ func (p Point) String() string {
 	}
 
 	w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.Debug)
-	fmt.Fprintf(w, "%s \t Tags\t Values\t %s\n", p.Measurement, timestamp)
+	fmt.Fprintf(w, "%s\t Tags\t Values\t %s\n", p.Measurement, timestamp)
 	for i := 0; i < iterations; i++ {
 		tag := ""
 		if len(tagsStr) > i {
