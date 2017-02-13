@@ -150,6 +150,9 @@ func (i Influx) Query(cmd string) (res []client.Result, err error) {
 }
 
 func (i Influx) Write(points []Point) error {
+	if len(points) < 1 {
+		return errors.New("No points to be written")
+	}
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:  i.DB,
 		Precision: "s",
