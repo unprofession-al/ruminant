@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -15,12 +16,20 @@ type Config struct {
 }
 
 type Regurgitate struct {
-	Host  string `yaml:"host"`
-	Port  int    `yaml:"port"`
-	Proto string `yaml:"proto"`
-	Index string `yaml:"index"`
-	Type  string `yaml:"type"`
-	Query string `yaml:"query"`
+	Host    string        `yaml:"host"`
+	Port    int           `yaml:"port"`
+	Proto   string        `yaml:"proto"`
+	Index   string        `yaml:"index"`
+	Type    string        `yaml:"type"`
+	Query   string        `yaml:"query"`
+	Sampler SamplerConfig `yaml:"sampler"`
+}
+
+type SamplerConfig struct {
+	Offset       time.Duration `yaml:"offset"`
+	Samples      int           `yaml:"samples"`
+	SampleOffset time.Duration `yaml:"sample_offset"`
+	Interval     string        `yaml:"interval"`
 }
 
 type Gulp struct {
