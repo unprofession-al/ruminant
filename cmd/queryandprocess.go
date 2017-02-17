@@ -21,7 +21,6 @@ func QueryAndProcess(c Config) ([]Point, Influx) {
 	l.Infof("Latest entry at %s", latest.Format("2006-01-02 15:04:05"))
 
 	t := template.Must(template.New("t1").Parse(c.Regurgitate.Query))
-
 	var query bytes.Buffer
 	t.Execute(&query, ToEsTimestamp(latest))
 
@@ -35,10 +34,7 @@ func QueryAndProcess(c Config) ([]Point, Influx) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	p := Point{
-		Tags:   make(map[string]string),
-		Values: make(map[string]interface{}),
-	}
+	p := Point{Tags: make(map[string]string), Values: make(map[string]interface{})}
 	l.Infow("Processing results")
 	out, err := Process(j, c.Ruminate.Iterator, p, 0)
 	if err != nil {

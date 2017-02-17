@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -30,13 +29,55 @@ var blaCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		l.Infow("Going to create InfluxDB client")
+		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
+		if err != nil {
+			l.Fatal("Could net create InfluxDB client", "error", err.Error())
+		}
+
+		l.Infow("Getting latest timestamp from InfluxDB")
+		latest, err := i.GetLatestMarker()
+		if err != nil {
+			l.Fatal("Could not get latest timestamp in series", "error", err.Error())
+		}
+		l.Infof("Latest entry at %s", latest.Format("2006-01-02 15:04:05"))
+
+		es := NewElasticSearch(c.Regurgitate.Proto, c.Regurgitate.Host, c.Regurgitate.Port)
+
 		interv := c.Regurgitate.Sampler.Interval
 		if interv != "" {
 			s, err := NewSampler(c.Regurgitate.Sampler)
 			if err != nil {
 				l.Fatal("Error occured", "error", err.Error())
 			}
-			fmt.Println(s)
+			out := s.BuildQueries(c.Regurgitate.Query, latest)
+			for ts, queries := range out {
+				var samples [][]Point
+				l.Infof("Sampling @ %s", ts.Format("2006-01-02 15:04:05"))
+				for i, query := range queries {
+					l.Infof("Query ElaticSearch for Sample %d", i)
+					result, err := es.Query(c.Regurgitate.Index, c.Regurgitate.Type, query)
+					if err != nil {
+						l.Fatal("Query failed", "error", err.Error())
+					}
+					j, err := result.AggsAsJson()
+					if err != nil {
+						log.Fatal(err)
+					}
+					p := Point{
+						Timestamp: ts,
+						Tags:      make(map[string]string),
+						Values:    make(map[string]interface{}),
+					}
+					l.Infow("Processing results")
+					sample, err := Process(j, c.Ruminate.Iterator, p, 0)
+					if err != nil {
+						l.Fatalw("Could not process data", "error", err.Error())
+					}
+					samples = append(samples, sample)
+				}
+			}
 		} else {
 			l.Infow("No Sampler found")
 		}

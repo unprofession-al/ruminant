@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"html/template"
 	"time"
 
 	"gopkg.in/robfig/cron.v2"
@@ -45,4 +47,32 @@ func NewSampler(c SamplerConfig) (Sampler, error) {
 	}
 	s.sampleOffsets = sampleOffsets
 	return s, nil
+}
+
+func (s Sampler) Iterate(from time.Time) []time.Time {
+	var out []time.Time
+
+	maxTime := time.Now().Add(-s.offset)
+	currentTime := s.interval.Next(from)
+
+	for keepgoing := currentTime.Before(maxTime); keepgoing; keepgoing = (currentTime.Before(maxTime)) {
+		out = append(out, currentTime)
+		currentTime = s.interval.Next(currentTime)
+	}
+	return out
+}
+
+func (s Sampler) BuildQueries(templ string, start time.Time) map[time.Time][]string {
+	t := template.Must(template.New("query").Parse(templ))
+	out := make(map[time.Time][]string)
+	for _, at := range s.Iterate(start) {
+		var queries []string
+		for _, offset := range s.sampleOffsets {
+			var query bytes.Buffer
+			t.Execute(&query, ToEsTimestamp(at.Add(offset)))
+			queries = append(queries, query.String())
+		}
+		out[at] = queries
+	}
+	return out
 }
