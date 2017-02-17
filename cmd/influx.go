@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"text/tabwriter"
 	"time"
 
@@ -14,6 +15,36 @@ type Point struct {
 	Timestamp time.Time
 	Tags      map[string]string
 	Values    map[string]interface{}
+}
+
+func Avg(points []Point, samples int) []Point {
+	var measurements []Point
+	for _, point := range points {
+		found := false
+		for _, measurement := range measurements {
+			if measurement.Timestamp == point.Timestamp && reflect.DeepEqual(measurement.Tags, point.Tags) {
+				for key, value := range point.Values {
+					add, _ := value.(float64)
+					pre, _ := measurement.Values[key].(float64)
+					measurement.Values[key] = pre + add
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			measurements = append(measurements, point.Copy())
+		}
+	}
+
+	for index, measurement := range measurements {
+		for key, value := range measurement.Values {
+			pre, _ := value.(float64)
+			measurements[index].Values[key] = pre / float64(samples)
+		}
+	}
+
+	return measurements
 }
 
 func (p Point) String() string {

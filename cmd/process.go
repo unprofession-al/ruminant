@@ -1,36 +1,16 @@
 package cmd
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
-	"github.com/mgutz/ansi"
 	"github.com/nytlabs/gojee"
 )
 
-func Process(j []byte, i Iterator, inherited Point, depht int) ([]Point, error) {
-	debug := false // TODO
+func Process(j []byte, i Iterator, inherited Point) ([]Point, error) {
 	var results []Point
-	indent := strings.Repeat("   ", depht)
-	indent = indent + "|"
-
-	if debug {
-		var prettyJSON bytes.Buffer
-		err := json.Indent(&prettyJSON, j, "", "   ")
-		if err != nil {
-			return results, err
-		}
-
-		scanner := bufio.NewScanner(strings.NewReader(prettyJSON.String()))
-		for scanner.Scan() {
-			fmt.Println(indent, ansi.Color(scanner.Text(), "red"))
-		}
-	}
 
 	selected, err := queryBytes(j, i.Selector)
 	if err != nil {
@@ -82,7 +62,7 @@ func Process(j []byte, i Iterator, inherited Point, depht int) ([]Point, error) 
 
 		if len(i.Iterators) > 0 {
 			for _, iterator := range i.Iterators {
-				processed, err := Process(elem, iterator, point, depht+1)
+				processed, err := Process(elem, iterator, point)
 				if err != nil {
 					return results, err
 				}

@@ -31,10 +31,10 @@ var vomitCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		out, _ := QueryAndProcess(c)
+		points := Ruminate(c)
 
-		for _, e := range out {
-			fmt.Println(e)
+		for _, p := range points {
+			fmt.Println(p)
 		}
 
 	},

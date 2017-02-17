@@ -23,22 +23,28 @@ import (
 // gulpCmd represents the gulp command
 var gulpCmd = &cobra.Command{
 	Use:   "gulp",
-	Short: "Feed data to InfluxDB",
+	Short: "Feed data to Infux DB",
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		out, i := QueryAndProcess(c)
+		points := Ruminate(c)
 
-		l.Infof("Saving %d data points to Influx DB", len(out))
-		err = i.Write(out)
+		l.Infow("Going to create InfluxDB client")
+		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
 		if err != nil {
-			l.Fatal("Could not write data to influx", "error", err.Error())
+			l.Fatal("Could net create InfluxDB client", "error", err.Error())
 		}
 
+		l.Infof("Saving %d data points to InfluxDB", len(points))
+		err = i.Write(points)
+		if err != nil {
+			l.Fatalw("Could not write data to InfluxDB", "error", err.Error())
+		}
 		l.Infow("Data points saved")
+
 	},
 }
 

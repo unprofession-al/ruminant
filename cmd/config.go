@@ -12,12 +12,12 @@ import (
 )
 
 type Config struct {
-	Regurgitate Regurgitate `yaml:"regurgitate"`
-	Ruminate    Ruminate    `yaml:"ruminate"`
-	Gulp        Gulp        `yaml:"gulp"`
+	Regurgitate RegurgitateConf `yaml:"regurgitate"`
+	Ruminate    RuminateConf    `yaml:"ruminate"`
+	Gulp        GulpConf        `yaml:"gulp"`
 }
 
-type Regurgitate struct {
+type RegurgitateConf struct {
 	Host    string        `yaml:"host"`
 	Port    int           `yaml:"port"`
 	Proto   string        `yaml:"proto"`
@@ -34,7 +34,7 @@ type SamplerConfig struct {
 	Interval     string        `yaml:"interval"`
 }
 
-type Gulp struct {
+type GulpConf struct {
 	Host      string `yaml:"host"`
 	Port      int    `yaml:"port"`
 	Db        string `yaml:"db"`
@@ -45,7 +45,7 @@ type Gulp struct {
 	Indicator string `yaml:"indicator"`
 }
 
-type Ruminate struct {
+type RuminateConf struct {
 	Iterator Iterator `yaml:"iterator"`
 }
 
@@ -69,6 +69,10 @@ func Conf() (Config, error) {
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Error while parsing %s: %s", cfgFile, err.Error()))
 		return conf, err
+	}
+
+	if conf.Regurgitate.Sampler.Samples == 0 {
+		conf.Regurgitate.Sampler.Samples = 1
 	}
 
 	SetupLogger()
