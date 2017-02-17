@@ -31,7 +31,7 @@ var vomitCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		out, _ := Setup(c)
+		out, _ := QueryAndProcess(c)
 
 		for _, e := range out {
 			fmt.Println(e)

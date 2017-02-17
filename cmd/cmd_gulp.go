@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -31,15 +30,15 @@ var gulpCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		out, i := Setup(c)
+		out, i := QueryAndProcess(c)
 
+		l.Infof("Saving %d data points to Influx DB", len(out))
 		err = i.Write(out)
 		if err != nil {
-			log.Print("Could not write data to influx")
-			log.Fatal(err)
+			l.Panic("Could not write data to influx", "error", err.Error())
 		}
 
-		log.Print(fmt.Sprintf("%d data points saved", len(out)))
+		l.Infow("Data points saved")
 	},
 }
 

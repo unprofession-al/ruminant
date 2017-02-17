@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"time"
 
+	"go.uber.org/zap"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -68,5 +70,15 @@ func Conf() (Config, error) {
 		return conf, err
 	}
 
+	SetupLogger()
+
 	return conf, nil
+}
+
+func SetupLogger() {
+	c := zap.NewDevelopmentConfig()
+	c.DisableCaller = true
+	c.DisableStacktrace = true
+	logger, _ := c.Build()
+	l = logger.Sugar()
 }

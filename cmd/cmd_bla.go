@@ -34,11 +34,11 @@ var blaCmd = &cobra.Command{
 		if interv != "" {
 			s, err := NewSampler(c.Regurgitate.Sampler)
 			if err != nil {
-				log.Fatal(err)
+				l.Panic("Error occured", "error", err.Error())
 			}
 			fmt.Println(s)
 		} else {
-			fmt.Println("No Sampler found")
+			l.Infow("No Sampler found")
 		}
 
 	},
@@ -46,15 +46,4 @@ var blaCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(blaCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// blaCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// blaCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

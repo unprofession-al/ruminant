@@ -14,6 +14,7 @@ import (
 )
 
 func Process(j []byte, i Iterator, inherited Point, depht int) ([]Point, error) {
+	debug := false // TODO
 	var results []Point
 	indent := strings.Repeat("   ", depht)
 	indent = indent + "|"

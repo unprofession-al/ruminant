@@ -2,39 +2,34 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"log"
 )
 
-func Setup(c Config) ([]Point, Influx) {
-	log.Print("Create InfluxDB client")
+func QueryAndProcess(c Config) ([]Point, Influx) {
+	l.Infow("Going to create InfluxDB client")
 	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Port)
 	if err != nil {
-		log.Print("Could not create influx client")
-		log.Fatal(err)
+		l.Panic("Could net create InfluxDB client", "error", err.Error())
 	}
 
-	log.Print("Getting latest timestamp from InfluxDB")
+	l.Infow("Getting latest timestamp from InfluxDB")
 	latest, err := i.GetLatestInSeries(c.Gulp.Series)
 	if err != nil {
-		log.Print("Could not get latest timestamp in series")
-		log.Fatal(err)
+		l.Panic("Could not get latest timestamp in series", "error", err.Error())
 	}
-	timestamp := latest.Format("2006-01-02 15:04:05")
-	log.Print(fmt.Sprintf("Latest entry at %s", timestamp))
+	l.Infof("Latest entry at %s", latest.Format("2006-01-02 15:04:05"))
 
 	t := template.Must(template.New("t1").Parse(c.Regurgitate.Query))
 
 	var query bytes.Buffer
 	t.Execute(&query, ToEsTimestamp(latest))
 
-	log.Print("Querying ElasticSearch")
+	l.Infow("Querying ElasticSearch")
 	es := NewElasticSearch(c.Regurgitate.Proto, c.Regurgitate.Host, c.Regurgitate.Port)
 	result, err := es.Query(c.Regurgitate.Index, c.Regurgitate.Type, query.String())
 	if err != nil {
-		log.Print("Could not query ElasticSearch")
-		log.Fatal(err)
+		l.Panic("Could not query ElasticSearch", "error", err.Error())
 	}
 	j, err := result.AggsAsJson()
 	if err != nil {
@@ -45,11 +40,10 @@ func Setup(c Config) ([]Point, Influx) {
 		Values:      make(map[string]interface{}),
 		Measurement: c.Gulp.Series,
 	}
-	log.Print("Processing results")
+	l.Infow("Processing results")
 	out, err := Process(j, c.Ruminate.Iterator, p, 0)
 	if err != nil {
-		log.Print("Could not process data")
-		log.Fatal(err)
+		l.Panic("Could not process data", "error", err.Error())
 	}
 
 	return out, i

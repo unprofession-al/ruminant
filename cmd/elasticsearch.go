@@ -75,7 +75,7 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 	}
 
 	if esr.Shards.Failed > 0 {
-		return esr, errors.New(fmt.Sprintf("%d of %d shards failed while executing query", esr.Shards.Failed, esr.Shards.Total))
+		return esr, errors.New(fmt.Sprintf("%f of %f shards failed while executing query", esr.Shards.Failed, esr.Shards.Total))
 	}
 
 	return esr, nil

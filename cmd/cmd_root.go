@@ -18,12 +18,14 @@ import (
 	"fmt"
 	"os"
 
+	"go.uber.org/zap"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	cfgFile string
-	debug   bool
+	l       *zap.SugaredLogger
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -46,5 +48,4 @@ func Execute() {
 
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&cfgFile, "cfg", "c", "$HOME/ruminant.yaml", "config file (default is $HOME/ruminant.yaml)")
-	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Print debug output")
 }
