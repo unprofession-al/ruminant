@@ -35,13 +35,14 @@ type SamplerConfig struct {
 }
 
 type Gulp struct {
-	Host   string `yaml:"host"`
-	Port   int    `yaml:"port"`
-	Db     string `yaml:"db"`
-	Proto  string `yaml:"proto"`
-	Series string `yaml:"series"`
-	User   string `yaml:"user"`
-	Pass   string `yaml:"Pass"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	Db        string `yaml:"db"`
+	Proto     string `yaml:"proto"`
+	Series    string `yaml:"series"`
+	User      string `yaml:"user"`
+	Pass      string `yaml:"pass"`
+	Indicator string `yaml:"indicator"`
 }
 
 type Ruminate struct {

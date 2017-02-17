@@ -35,7 +35,7 @@ var gulpCmd = &cobra.Command{
 		l.Infof("Saving %d data points to Influx DB", len(out))
 		err = i.Write(out)
 		if err != nil {
-			l.Panic("Could not write data to influx", "error", err.Error())
+			l.Fatal("Could not write data to influx", "error", err.Error())
 		}
 
 		l.Infow("Data points saved")

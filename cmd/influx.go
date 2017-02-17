@@ -11,10 +11,9 @@ import (
 )
 
 type Point struct {
-	Timestamp   time.Time
-	Tags        map[string]string
-	Values      map[string]interface{}
-	Measurement string
+	Timestamp time.Time
+	Tags      map[string]string
+	Values    map[string]interface{}
 }
 
 func (p Point) String() string {
@@ -42,7 +41,7 @@ func (p Point) String() string {
 	}
 
 	w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.Debug)
-	fmt.Fprintf(w, "%s\t Tags\t Values\t %s\n", p.Measurement, timestamp)
+	fmt.Fprintf(w, "@%s\t Tags\t Values\n", timestamp)
 	for i := 0; i < iterations; i++ {
 		tag := ""
 		if len(tagsStr) > i {
@@ -52,7 +51,7 @@ func (p Point) String() string {
 		if len(valuesStr) > i {
 			value = valuesStr[i]
 		}
-		fmt.Fprintf(w, "\t %s\t %s\t\n", tag, value)
+		fmt.Fprintf(w, "\t %s\t %s\n", tag, value)
 	}
 	w.Flush()
 
@@ -71,20 +70,21 @@ func (p Point) Copy() Point {
 	}
 
 	c := Point{
-		Timestamp:   p.Timestamp,
-		Tags:        tags,
-		Values:      values,
-		Measurement: p.Measurement,
+		Timestamp: p.Timestamp,
+		Tags:      tags,
+		Values:    values,
 	}
 	return c
 }
 
 type Influx struct {
-	DB     string
-	Client client.Client
+	DB        string
+	Client    client.Client
+	Series    string
+	Indicator string
 }
 
-func NewInflux(host, proto, db, user, pass string, port int) (Influx, error) {
+func NewInflux(host, proto, db, user, pass, series, indicator string, port int) (Influx, error) {
 	i := Influx{}
 	c, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     fmt.Sprintf("%s://%s:%d", proto, host, port),
@@ -96,18 +96,20 @@ func NewInflux(host, proto, db, user, pass string, port int) (Influx, error) {
 	}
 
 	i = Influx{
-		DB:     db,
-		Client: c,
+		DB:        db,
+		Client:    c,
+		Series:    series,
+		Indicator: indicator,
 	}
 	return i, nil
 }
 
 const LatestIndicator = "RUMINANT_LAST_RUN"
 
-func (i Influx) GetLatestInSeries(series string) (t time.Time, err error) {
+func (i Influx) GetLatestMarker() (t time.Time, err error) {
 	var res []client.Result
 	q := client.Query{
-		Command:  fmt.Sprintf("SELECT last(%s) FROM %s", LatestIndicator, series),
+		Command:  fmt.Sprintf("SELECT last(%s) FROM %s WHERE ruminant = '%s'", LatestIndicator, i.Series, i.Indicator),
 		Database: i.DB,
 	}
 	response, err := i.Client.Query(q)
@@ -162,31 +164,31 @@ func (i Influx) Write(points []Point) error {
 	}
 
 	var newest time.Time
-	series := ""
 	for _, p := range points {
-		pt, err := client.NewPoint(p.Measurement, p.Tags, p.Values, p.Timestamp)
+
+		pt, err := client.NewPoint(i.Series, p.Tags, p.Values, p.Timestamp)
 		if err != nil {
 			return err
 		}
 		if p.Timestamp.After(newest) {
 			newest = p.Timestamp
 		}
-		if series == "" {
-			series = p.Measurement
-		}
 		bp.AddPoint(pt)
 	}
 
-	tags := map[string]string{"ruminant": "system"}
-	fields := map[string]interface{}{LatestIndicator: "write"}
-	p, err := client.NewPoint(series, tags, fields, newest)
-	if err != nil {
-		return err
-	}
-	bp.AddPoint(p)
+	bp.AddPoint(i.LatestMarker(newest, "write"))
 
 	if err := i.Client.Write(bp); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (i Influx) LatestMarker(t time.Time, note string) *client.Point {
+	tags := map[string]string{"ruminant": i.Indicator}
+	fields := map[string]interface{}{
+		LatestIndicator: fmt.Sprintf("%s: %s", i.Indicator, note),
+	}
+	p, _ := client.NewPoint(i.Series, tags, fields, t)
+	return p
 }

@@ -28,7 +28,7 @@ var initOffset int
 // vomitCmd represents the vomit command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "creates the Database if required and sets a start date",
+	Short: "Creates the Database if required and sets a start date",
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf()
 		if err != nil {
@@ -36,34 +36,28 @@ var initCmd = &cobra.Command{
 		}
 
 		l.Infow("Going to create InfluxDB client")
-		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Port)
+		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
 		if err != nil {
-			l.Panic("Could net create InfluxDB client", "error", err.Error())
+			l.Fatal("Could net create InfluxDB client", "error", err.Error())
 		}
 
 		l.Infof("Create InfluxDB %s", c.Gulp.Db)
 		_, err = i.Query(fmt.Sprintf("CREATE DATABASE %s", c.Gulp.Db))
 		if err != nil {
-			l.Panic("Could not create database", "error", err.Error())
+			l.Fatal("Could not create database", "error", err.Error())
 		}
 
 		l.Infof("Creating initial timestamp with an offset of %d hours", initOffset)
 		bp, err := client.NewBatchPoints(client.BatchPointsConfig{Database: i.DB, Precision: "s"})
 		if err != nil {
-			l.Panic("Could create initial timestamp", "error", err.Error())
+			l.Fatal("Could create initial timestamp", "error", err.Error())
 		}
 
-		tags := map[string]string{"ruminant": "system"}
-		fields := map[string]interface{}{LatestIndicator: "init"}
 		timestamp := time.Now().Add(-(time.Hour * time.Duration(initOffset)))
-		pt, err := client.NewPoint(c.Gulp.Series, tags, fields, timestamp)
-		if err != nil {
-			l.Panic("Could create initial timestamp", "error", err.Error())
-		}
-		bp.AddPoint(pt)
+		bp.AddPoint(i.LatestMarker(timestamp, "init"))
 
 		if err := i.Client.Write(bp); err != nil {
-			l.Panic("Could save initial timestamp", "error", err.Error())
+			l.Fatal("Could save initial timestamp", "error", err.Error())
 		}
 	},
 }

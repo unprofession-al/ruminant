@@ -34,7 +34,7 @@ var blaCmd = &cobra.Command{
 		if interv != "" {
 			s, err := NewSampler(c.Regurgitate.Sampler)
 			if err != nil {
-				l.Panic("Error occured", "error", err.Error())
+				l.Fatal("Error occured", "error", err.Error())
 			}
 			fmt.Println(s)
 		} else {
