@@ -45,6 +45,9 @@ func Ruminate(c Config, burp bool) []Point {
 	var points []Point
 	processed := 0
 	for ts, queries := range sampledQueries {
+		if burp && len(points) > 0 {
+			break
+		}
 		var samples []Point
 		l.Infof("Sampling @ %s", ts.Format("2006-01-02 15:04:05"))
 		for i, query := range queries {
@@ -68,7 +71,9 @@ func Ruminate(c Config, burp bool) []Point {
 			if burp {
 				l.Infow("Printing latest processed json fragment")
 				sample, jsonFragment, err = Burp(j, c.Ruminate.Iterator, p)
-				fmt.Printf("\n%s\n\n", jsonFragment)
+				if jsonFragment != "" {
+					fmt.Printf("\n%s\n\n", jsonFragment)
+				}
 			} else {
 				sample, err = Chew(j, c.Ruminate.Iterator, p)
 			}
