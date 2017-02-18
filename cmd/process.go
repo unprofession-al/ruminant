@@ -10,11 +10,19 @@ import (
 )
 
 func Burp(j []byte, i Iterator, inherited Point) ([]Point, string, error) {
+	var points []Point
+	if i.Selector == "" {
+		return points, string(j), errors.New("No selector definded")
+	}
 	points, _, jsonFragment, err := process(j, i, inherited, true)
 	return points, jsonFragment, err
 }
 
 func Chew(j []byte, i Iterator, inherited Point) ([]Point, error) {
+	var points []Point
+	if i.Selector == "" {
+		return points, errors.New("No selector definded")
+	}
 	points, _, _, err := process(j, i, inherited, false)
 	return points, err
 }
