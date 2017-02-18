@@ -31,8 +31,9 @@ var vomitCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		points := Ruminate(c)
+		points := Ruminate(c, false)
 
+		l.Infof("Printing data points\n")
 		for _, p := range points {
 			fmt.Println(p)
 		}

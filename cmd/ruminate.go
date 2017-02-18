@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"log"
 	"time"
 )
 
-func Ruminate(c Config) []Point {
+func Ruminate(c Config, burp bool) []Point {
 	l.Infow("Going to create InfluxDB client")
 	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
 	if err != nil {
@@ -50,7 +51,7 @@ func Ruminate(c Config) []Point {
 			l.Infof("-- Query ElasticSearch for sample %d", i)
 			result, err := es.Query(c.Regurgitate.Index, c.Regurgitate.Type, query)
 			if err != nil {
-				l.Fatal("-- Query failed", "error", err.Error())
+				l.Fatalw("-- Query failed", "error", err.Error())
 			}
 			j, err := result.AggsAsJson()
 			if err != nil {
@@ -62,7 +63,15 @@ func Ruminate(c Config) []Point {
 				Values:    make(map[string]interface{}),
 			}
 			l.Infow("-- Processing results")
-			sample, err := Process(j, c.Ruminate.Iterator, p)
+			var sample []Point
+			var jsonFragment string
+			if burp {
+				l.Infow("Printing latest processed json fragment")
+				sample, jsonFragment, err = Burp(j, c.Ruminate.Iterator, p)
+				fmt.Printf("\n%s\n\n", jsonFragment)
+			} else {
+				sample, err = Chew(j, c.Ruminate.Iterator, p)
+			}
 			if err != nil {
 				l.Fatalw("Could not process data", "error", err.Error())
 			}

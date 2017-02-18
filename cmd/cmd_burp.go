@@ -15,39 +15,37 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
 )
 
-// gulpCmd represents the gulp command
-var gulpCmd = &cobra.Command{
-	Use:   "gulp",
-	Short: "Feed data to Infux DB",
+// burpCmd represents the burp command
+var burpCmd = &cobra.Command{
+	Use:   "burp",
+	Short: "Test the query and iterator",
+	Long: `'burp' works simiar no the 'vomit' command. But in contrast to
+'vomit', 'burp' does only print one data point instead of all. It also
+prints the json fragment that has been processed last by your ruminate
+iterators. This is useful for debugging existing ruminate configurations
+or creating new ones.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		points := Ruminate(c, false)
+		points := Ruminate(c, true)
 
-		l.Infow("Going to create InfluxDB client")
-		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
-		if err != nil {
-			l.Fatal("Could net create InfluxDB client", "error", err.Error())
+		l.Infof("Printing sample data point\n")
+		for _, p := range points {
+			fmt.Println(p)
 		}
-
-		l.Infof("Saving %d data points to InfluxDB", len(points))
-		err = i.Write(points)
-		if err != nil {
-			l.Fatalw("Could not write data to InfluxDB", "error", err.Error())
-		}
-		l.Infow("Data points saved")
 
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(gulpCmd)
+	RootCmd.AddCommand(burpCmd)
 }

@@ -25,6 +25,7 @@ type EsResponse struct {
 		Hits     interface{} `json:"hits"`
 	} `json:"hits"`
 	Aggregations interface{} `json:"aggregations"`
+	Error        string      `json:"error"`
 }
 
 func NewEsResponse(in io.Reader) (EsResponse, error) {
@@ -72,6 +73,10 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 	esr, err = NewEsResponse(resp.Body)
 	if err != nil {
 		return esr, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return esr, errors.New(fmt.Sprintf("Error while executing query, status code %d, output %s", resp.StatusCode, esr.Error))
 	}
 
 	if esr.Shards.Failed > 0 {
