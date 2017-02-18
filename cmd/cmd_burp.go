@@ -31,7 +31,7 @@ prints the json fragment that has been processed last by your ruminate
 iterators. This is useful for debugging existing ruminate configurations
 or creating new ones.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		c, err := Conf()
+		c, err := Conf(true)
 		if err != nil {
 			log.Fatal(err)
 		}

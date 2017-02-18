@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
@@ -57,8 +58,31 @@ type Iterator struct {
 	Iterators []Iterator        `yaml:"iterators"`
 }
 
-func Conf() (Config, error) {
-	conf := Config{}
+func Conf(mustExist bool) (Config, error) {
+	conf := Config{
+		Regurgitate: RegurgitateConf{
+			Port:  9200,
+			Proto: "http",
+			Index: "logstash-*",
+			Sampler: SamplerConfig{
+				Samples: 1,
+			},
+		},
+		Gulp: GulpConf{
+			Proto: "http",
+			Port:  8086,
+		},
+	}
+
+	if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+		if mustExist {
+			err = errors.New(fmt.Sprintf("Config file %s does not exist", cfgFile))
+			return conf, err
+		} else {
+			return conf, nil
+		}
+	}
+
 	file, err := ioutil.ReadFile(cfgFile)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Error while reading %s: %s", cfgFile, err.Error()))
@@ -71,13 +95,14 @@ func Conf() (Config, error) {
 		return conf, err
 	}
 
-	if conf.Regurgitate.Sampler.Samples == 0 {
-		conf.Regurgitate.Sampler.Samples = 1
-	}
-
 	SetupLogger()
 
 	return conf, nil
+}
+
+func (c Config) String() string {
+	b, _ := yaml.Marshal(c)
+	return string(b)
 }
 
 func SetupLogger() {

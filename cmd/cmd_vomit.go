@@ -26,7 +26,7 @@ var vomitCmd = &cobra.Command{
 	Use:   "vomit",
 	Short: "Throw up to standart output",
 	Run: func(cmd *cobra.Command, args []string) {
-		c, err := Conf()
+		c, err := Conf(true)
 		if err != nil {
 			log.Fatal(err)
 		}

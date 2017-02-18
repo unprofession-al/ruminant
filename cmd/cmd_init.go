@@ -25,12 +25,12 @@ import (
 
 var initOffset int
 
-// vomitCmd represents the vomit command
+// initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Creates the Database if required and sets a start date",
 	Run: func(cmd *cobra.Command, args []string) {
-		c, err := Conf()
+		c, err := Conf(true)
 		if err != nil {
 			log.Fatal(err)
 		}

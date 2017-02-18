@@ -15,39 +15,29 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
 )
 
-// gulpCmd represents the gulp command
-var gulpCmd = &cobra.Command{
-	Use:   "gulp",
-	Short: "Feed data to Infux DB",
+// configCmd represents the config command
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Prints the config used to the stdout.",
+	Long: `Prints the configuration used to standard output. If no configuration
+is passed in via '-c' the defaults are printed. This is useful either to bootstrap
+a new configuration or to debug an existig config file.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		c, err := Conf(true)
+		c, err := Conf(false)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		points := Ruminate(c, false)
-
-		l.Infow("Going to create InfluxDB client")
-		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
-		if err != nil {
-			l.Fatal("Could net create InfluxDB client", "error", err.Error())
-		}
-
-		l.Infof("Saving %d data points to InfluxDB", len(points))
-		err = i.Write(points)
-		if err != nil {
-			l.Fatalw("Could not write data to InfluxDB", "error", err.Error())
-		}
-		l.Infow("Data points saved")
-
+		fmt.Println(c)
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(gulpCmd)
+	RootCmd.AddCommand(configCmd)
 }
