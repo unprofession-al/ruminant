@@ -23,20 +23,20 @@ aggregation for example.
 executed once per point in your time series, a _sampler configuration_ can be passed
 This allows to run the same query multiple times with incrementing timestamps.
 
-This step in knows as _regurgitate_ in the ruminant jargon.
+This step in known as _regurgitate_ in the ruminant jargon.
 
 **Process the results and build time series:** ElasticSearch returns the resuls
 of the query as JSON data. with simple expressions, `Ruminant` allows you to
 iterate over these results and lets you indicate where in the JSON information
 can be found that should be stored with the time series.
 
-This step in knows as _ruminate_ in the ruminant jargon.
+This step in known as _ruminate_ in the ruminant jargon.
 
 **Persist time series:** The set of data points created in the last step is then
 saved to the Influx database and series specified in your configuration. Also, a
 new _marker timestamp_ is written that indicates the the new latest point in your
 series to indicate where to start on the next run.
 
-This step in knows as _gulp_ in the ruminant jargon.
+This step in known as _gulp_ in the ruminant jargon.
 
 ![How It Works](https://raw.githubusercontent.com/unprofession-al/ruminant/master/ruminant.png "How it works")
