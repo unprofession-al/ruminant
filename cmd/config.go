@@ -16,6 +16,14 @@ type Config struct {
 	Regurgitate RegurgitateConf `yaml:"regurgitate"`
 	Ruminate    RuminateConf    `yaml:"ruminate"`
 	Gulp        GulpConf        `yaml:"gulp"`
+	Poop        PoopConf        `yaml:"poop"`
+}
+
+type PoopConf struct {
+	Query  string   `yaml:"query"`
+	Fields []string `yaml:"fields"`
+	Start  string   `yaml:"start"`
+	End    string   `yaml:"end"`
 }
 
 type RegurgitateConf struct {
@@ -58,6 +66,21 @@ type Iterator struct {
 	Iterators []Iterator        `yaml:"iterators"`
 }
 
+func (i Iterator) GetStructure() (tags []string, values []string) {
+	for key, _ := range i.Tags {
+		tags = append(tags, key)
+	}
+	for key, _ := range i.Values {
+		values = append(values, key)
+	}
+	for _, iter := range i.Iterators {
+		t, v := iter.GetStructure()
+		tags = append(tags, t...)
+		values = append(values, v...)
+	}
+	return
+}
+
 func Conf(mustExist bool) (Config, error) {
 	conf := Config{
 		Regurgitate: RegurgitateConf{
@@ -71,6 +94,11 @@ func Conf(mustExist bool) (Config, error) {
 		Gulp: GulpConf{
 			Proto: "http",
 			Port:  8086,
+		},
+		Poop: PoopConf{
+			Query: "SELECT {{ range $index, $element := .Fields }}{{if $index}},{{end}}\"{{$element}}\"{{end}} FROM \"{{.Series}}\" WHERE time > {{.Start}} AND time < {{.End}}",
+			Start: "now() - 1d",
+			End:   "now()",
 		},
 	}
 
@@ -93,6 +121,14 @@ func Conf(mustExist bool) (Config, error) {
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Error while parsing %s: %s", cfgFile, err.Error()))
 		return conf, err
+	}
+
+	if len(conf.Poop.Fields) < 1 {
+		fields := []string{"time"}
+		tags, values := conf.Ruminate.Iterator.GetStructure()
+		fields = append(fields, tags...)
+		fields = append(fields, values...)
+		conf.Poop.Fields = fields
 	}
 
 	SetupLogger()
