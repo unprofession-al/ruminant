@@ -35,7 +35,7 @@ var gulpCmd = &cobra.Command{
 		l.Infow("Going to create InfluxDB client")
 		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
 		if err != nil {
-			l.Fatal("Could net create InfluxDB client", "error", err.Error())
+			l.Fatalw("Could not create InfluxDB client", "error", err.Error())
 		}
 
 		l.Infof("Saving %d data points to InfluxDB", len(points))
