@@ -43,6 +43,11 @@ series to indicate where to start on the next run.
 
 ## Usage
 
+> Please note: Do not really use this just yet. So far, the  project was a quick
+shot to solve a particular problem. The source itself has neither documentation
+nor tests to ensure that all the stuff works an expected... Those topics will be
+addressed soon.
+
 Install via:
 
 
