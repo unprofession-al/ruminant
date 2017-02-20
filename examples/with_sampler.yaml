@@ -1,0 +1,113 @@
+# This File only illustrates how a 'sampler' configuration works. To learn
+# about general confiuration please refer to 'without_sampler.yaml'
+#
+# Sometimes it is not possible to gather the requested data using a
+# 'date_histogram' aggregation.
+#
+# In the folloing example assumes that we have some sort of streaming service
+# running (such as icecast). The logs in ElasticSeach consint of the following
+# fields.
+#
+# @timestamp
+#     type: date
+#     desc: log timestamp, eg. the end of the stream.
+# start_time
+#     type: date
+#     desc: the start timestamp of the stream
+# stream_name
+#     type: string
+#     desc: the name of the stream
+#
+# The data we want to extract are:
+#
+# every 5 minutes...
+#     ... per stream_name...
+#         ... all concurrently running stream requests
+#
+# A data point (example) on the time series should look like this:
+#
+# Measurement: stream_stats
+#   Timestamp: 2017-02-20 10:05:00
+#        Tags: key=name value=radio_ruminant
+#      Values: key=concurrent value=219
+#
+# The concurrent value can be found if we count all stream requests with a
+# 'start_time' before than the upper end of a single measurement time window
+# and a '@timestamp' (end time) after the lower end of the measurement window.
+#
+# Since that sounds weird, heres a visual representation of this:
+#
+#      |===========================|        time window to measure, sets say 3 seconds
+#
+#  ---============}                         stream that ended during the time window
+#          }===============}                stream that started/ended in the time window
+#                       }============---    stream that ended in the time window
+#  ---===============================---    stream that started before and ended after the period
+#
+# The situation above would result in 4 concurrent streams
+regurgitate:
+  host: elastic.example.com
+  port: 9200
+  proto: http
+  index: logstash-*
+  type: stream
+  query: |
+    {
+        "size": 0,
+        "query": {
+            "filtered": {
+                "query": {
+                    "bool": {
+                        "must": {
+                            "range": {
+                                "@timestamp": {
+                                    "gte": "{{ . }}||-3s"
+                                }
+                            }
+                        },
+                        "must": {
+                            "range": {
+                                "start_time": {
+                                    "lt": "{{ . }}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "aggs": {
+            "by_name": {
+                "terms": {
+                    "field": "stream_name.raw"
+                }
+            }
+        }
+    }
+  # Use a sampler that executes the query above every five minutes. Starts
+  # measuring at the latest 'marker timestamp' and measure until 6 hours before
+  # the current time.
+  #
+  # For each step on the interval (eg. 5 minutes) take 3 measurements with an
+  # offset of 1 minute. The result is the average of those 3 measurements.
+  sampler:
+    offset: 6h0m0s
+    samples: 3
+    sample_offset: 1m0s
+    interval: '*/5 * * * *'
+ruminate:
+  # 'iterators' as usual, note that no time 'selector' is configured, the time
+  # of the sampler is used data point timestamp.
+  iterator:
+    selector: .by_name.buckets[]
+    tags:
+      name: .key
+    values:
+      concurrent: .doc_count
+gulp:
+  host: influx.example.com
+  port: 8086
+  proto: http
+  db: steam
+  series: stream_stats
+  indicator: steam_concurrent
