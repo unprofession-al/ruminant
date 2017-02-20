@@ -40,3 +40,29 @@ series to indicate where to start on the next run.
 > This step in known as _gulp_ in the ruminant jargon.
 
 ![How It Works](https://raw.githubusercontent.com/unprofession-al/ruminant/master/ruminant.png "How it works")
+
+## Usage
+
+```
+ruminant -h
+Feed data from ElasticSearch to InfluxDB
+
+Usage:
+  ruminant [command]
+
+Available Commands:
+  burp        Test the query and iterator
+  config      Prints the config used to the stdout
+  gulp        Feed data to Infux DB
+  init        Creates the Database if required and sets a start date
+  poop        Dump data from Infux DB to stdout
+  vomit       Throw up to standart output
+
+Flags:
+  -c, --cfg string   config file (default is $HOME/ruminant.yaml) (default "$HOME/ruminant.yaml")
+```
+
+## Annotated Confiruration
+
+Jump to the [examples](https://github.com/unprofession-al/ruminant/tree/master/examples)
+to find some annotated configuration files.
