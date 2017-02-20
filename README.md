@@ -15,12 +15,12 @@ point for this run...
 **Fetch the data from ElasticSearch:** A query provided is executed and its result
 is prepared to be processed. A query can be executed in two manners:
 
-1. If no scheduler configuration is provided, the query is executed once. This is
+1. If no _sampler configuration_ is provided, the query is executed once. This is
 kind of execution is a good fit if you can extract timestamps for your time series
 from the results of your ElasticSeach query, eg. if the query performs a `date_histogram`
 aggregation for example.
 2. If a query does not contain a `date_histogram` aggregation and needs to be 
-executed once per point in your time series, a _sampler configuration_ can be passed
+executed once per point in your time series, a _sampler configuration_ can be passed.
 This allows to run the same query multiple times with incrementing timestamps.
 
 This step in known as _regurgitate_ in the ruminant jargon.
