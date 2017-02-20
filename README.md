@@ -43,6 +43,15 @@ series to indicate where to start on the next run.
 
 ## Usage
 
+Install via:
+
+
+```
+go get -u github.com/unprofession-al/ruminant
+```
+
+Run via: 
+
 ```
 ruminant -h
 Feed data from ElasticSearch to InfluxDB
@@ -65,7 +74,7 @@ Flags:
 ## Annotated Configuration
 
 Jump to the [examples](https://github.com/unprofession-al/ruminant/tree/master/examples)
-to find some annotated configuration file$s.
+to find some annotated configuration files.
 
 ## Credits
 
