@@ -49,7 +49,7 @@ regurgitate:
   type: www
   # The query that is executed on elasticsearch. Note the '{{ . }}' expression
   # in the range filter. This is subsituted with a 'marker timestamp' that refers
-  # to the latest entry in the Influx Database. This allows to run Rominant via
+  # to the latest entry in the Influx Database. This allows to run Ruminant via
   # a schedueler such as Cron or Jenkins, manually by command line etc. without
   # careing about updating the query each time.
   #
@@ -144,7 +144,7 @@ gulp:
   # The 'gulp' section refers to the Influx database. All parameters should be
   # self explained expect the 'indicator'. This is relevant in case multiple
   # Ruminant configs need to write in the same database/series. The 'indicator'
-  # is then used by Rominant as a tag to write and read 'marker timestames' so
+  # is then used by Ruminant as a tag to write and read 'marker timestames' so
   # multiple each configuration knows its last 'marker timestamp'.
   host: influx.example.com
   port: 8086
