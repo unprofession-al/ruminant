@@ -3,7 +3,7 @@
 `Ruminant`queries an ElasticSearch database, processes the results and feeds them
 as time series to an Influx database. ETL for a rather specific use case, basically.
 
-## But how?
+## How it works
 
 Processing data with `Ruminant` performs a few steps that you should understand:
 
