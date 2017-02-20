@@ -1,0 +1,154 @@
+# This file illustates and explains a configuration that executes a query
+# withoutsample scheduling (eg. the query is executed only once per run).
+# In order to make sense of the result of such queries it will be requried
+# in most cases to perform some sort of 'date_histogram' aggregation - this
+# allows to fetch timestamps of the time series data points from the query
+# results.
+#
+# The use case shown assumes that access logs of some websites are stored in
+# ElasticSearch. Consider the following fields as existing:
+#
+# @timestamp
+#     type: date
+#     desc: log timestamp
+# hostname
+#     type: string
+#     desc: host header string of the requested website (eg. web.example.com)
+# body_bytes_sent
+#     type: integer
+#     desc: size of the response body in bytes
+# client_ip
+#     type: ip
+#     desc: ip of the client who sent the request
+#
+# The data we want to extract are:
+#
+# every 5 minutes...
+#     ... per hostname...
+#         ... number of requests,
+#         ... bytes sent,
+#         ... unique user ips
+#
+# A data point (example) on the time series should look like this:
+#
+# Measurement: www_stats
+#   Timestamp: 2017-02-20 10:05:00
+#        Tags: key=domain value=web.example.com
+#      Values: key=request_count value=219
+#              key=bytes_sent value=234362
+#              key=uniq_users value=12
+#
+regurgitate:
+  # The following parameters are required to build the elasticsearch query url
+  # The config shown would result in
+  #   'http://elastic.example.com:9200/logstash-*/www
+  host: elastic.example.com
+  port: 9200
+  proto: http
+  index: logstash-*
+  type: www
+  # The query that is executed on elasticsearch. Note the '{{ . }}' expression
+  # in the range filter. This is subsituted with a 'marker timestamp' that refers
+  # to the latest entry in the Influx Database. This allows to run Rominant via
+  # a schedueler such as Cron or Jenkins, manually by command line etc. without
+  # careing about updating the query each time.
+  #
+  # Also, note the offset configured in query itself:
+  #
+  #     "lt": "now-6h"
+  #
+  # This will cause ElasticSearch to only return data starting from the last
+  # 'marker timestamp' to the current time minus an offset of six hours.
+  query: |
+    {
+        "size": 0,
+        "query": {
+            "filtered": {
+                "filter": {
+                    "range": {
+                        "@timestamp": {
+                            "gt": "{{ . }}",
+                            "lt": "now-6h"
+                        }
+                    }
+                }
+            }
+        },
+        "aggs": {
+            "over_time" :{
+                "date_histogram": {
+                    "field": "@timestamp",
+                    "interval": "5m"
+                },
+                "aggs": {
+                    "by_domain": {
+                        "terms": {
+                            "field": "hostname.raw",
+                            "size": 0
+                        },
+                        "aggs" : {
+                            "bytes_sent": {
+                                "sum": {
+                                    "field": "body_bytes_sent"
+                                }
+                            },
+                            "uniq_users": {
+                                "cardinality": {
+                                    "field": "client_ip"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+ruminate:
+  # This section describes how data returned by ElasticSearch is processed
+  # into time series. A data point of a time series has the following attributes:
+  #
+  # time:
+  #     timestamp of the data point
+  #     see https://docs.influxdata.com/influxdb/v1.2/concepts/glossary/#timestamp
+  # tags:
+  #     key/value pairs (strings) that can be used to add information datapoints
+  #     see https://docs.influxdata.com/influxdb/v1.2/concepts/glossary/#tag
+  # values:
+  #     key/value pairs (key=string, vaule=int) that describe the data collected
+  #     see: https://docs.influxdata.com/influxdb/v1.2/concepts/glossary/#field-set
+  #
+  # Since the JSON data returned by ElasticSearch often costists of nested
+  # arrays (see 'bucket aggregations' in the ElasticSearch documentation)
+  # 'iterators' are specified to loop over these arrays. Each 'iterator'
+  # has a 'selector' that describes the path in the JSON structure.
+  #
+  # In each iteration data can be collected and stored as data point attributes.
+  # Again, the path in the JSON file must be provided in order to allow Ruminant
+  # to find the data required.
+  #
+  # All those paths must be specified as 'jee' expressions. Please refer to
+  # https://github.com/nytlabs/gojee to find a full documentation.
+  iterator:
+    selector: .over_time.buckets[]
+    time: .key
+    iterators:
+    - selector: .by_domain.buckets[]
+      time: ""
+      tags:
+        domain: .key
+      values:
+        request_count: .doc_count
+        bytes_sent: .bytes_sent.value
+        uniq_users: .uniq_users.value
+gulp:
+  # The 'gulp' section refers to the Influx database. All parameters should be
+  # self explained expect the 'indicator'. This is relevant in case multiple
+  # Ruminant configs need to write in the same database/series. The 'indicator'
+  # is then used by Rominant as a tag to write and read 'marker timestames' so
+  # multiple each configuration knows its last 'marker timestamp'.
+  host: influx.example.com
+  port: 8086
+  proto: http
+  db: www
+  series: www_stats
+  indicator: lsa_segmented

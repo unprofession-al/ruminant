@@ -62,7 +62,18 @@ Flags:
   -c, --cfg string   config file (default is $HOME/ruminant.yaml) (default "$HOME/ruminant.yaml")
 ```
 
-## Annotated Confiruration
+## Annotated Configuration
 
 Jump to the [examples](https://github.com/unprofession-al/ruminant/tree/master/examples)
-to find some annotated configuration files.
+to find some annotated configuration file$s.
+
+## Credits
+
+Main third party components other than the go standard library are:
+
+* https://github.com/go-yaml/yaml/tree/v2
+* https://github.com/influxdata/influxdb/tree/master/client
+* https://github.com/nytlabs/gojee
+* https://github.com/robfig/cron
+* https://github.com/spf13/cobra
+* https://github.com/uber-go/zap
