@@ -13,7 +13,9 @@ var initOffset int
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Creates the Database if required and sets a start date",
+	Short: "Prepares the InfluxDB to be used with Ruminant",
+	Long: `Creates the InfluxDB as configured at sets an initial marker
+timestamp with a given offset in relation to the current time.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf(true)
 		if err != nil {

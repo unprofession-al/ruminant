@@ -9,7 +9,9 @@ import (
 
 var vomitCmd = &cobra.Command{
 	Use:   "vomit",
-	Short: "Throw up to standart output",
+	Short: "Throw up to stdout",
+	Long: `Prints all time series data points to standard output. This can be
+helpful for debugging reasons.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf(true)
 		if err != nil {

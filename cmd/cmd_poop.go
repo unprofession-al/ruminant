@@ -14,7 +14,9 @@ import (
 
 var poopCmd = &cobra.Command{
 	Use:   "poop",
-	Short: "Dump data from Infux DB to stdout",
+	Short: "Dump data from InfluxDB to stdout",
+	Long: `Dumps the content of the InfluxDB to the standard output as
+CSV file. The time range can be configured.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf(true)
 		if err != nil {

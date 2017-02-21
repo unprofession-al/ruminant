@@ -8,7 +8,11 @@ import (
 
 var gulpCmd = &cobra.Command{
 	Use:   "gulp",
-	Short: "Feed data to Infux DB",
+	Short: "Feed data to InfuxDB",
+	Long: `Query the ElasticSearch Database, Process the results add feed the
+time series data points generated to the InfluxDB configured. This
+At the end of this process, this also writes a new marker timestamp
+to the InfluxDB.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := Conf(true)
 		if err != nil {
