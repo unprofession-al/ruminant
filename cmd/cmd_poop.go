@@ -3,11 +3,12 @@ package cmd
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"text/template"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -46,6 +47,7 @@ CSV file. The time range can be configured.`,
 		t.Execute(&query, qd)
 		res, err := i.Query(query.String())
 		if err != nil {
+			l.Infof("Query was: %s", query)
 			l.Fatalw("Could not query InfluxDB", "error", err.Error())
 		}
 
@@ -53,10 +55,30 @@ CSV file. The time range can be configured.`,
 		wr.Write(c.Poop.Fields)
 		wr.Flush()
 		for _, point := range res[0].Series[0].Values {
-			st := strings.Fields(strings.Trim(fmt.Sprint(point), "[]"))
-			wr := csv.NewWriter(os.Stdout)
-			wr.Write(st)
-			wr.Flush()
+			for i, elem := range point {
+				if i != 0 {
+					fmt.Printf(c.Poop.Separator)
+					switch elem := elem.(type) {
+					default:
+						fmt.Printf("%v", elem)
+					case json.Number:
+						number, err := elem.Float64()
+						if err != nil {
+							fmt.Println(err)
+							break
+						}
+						fmt.Printf("%.0f", number)
+					}
+				} else {
+					ts, err := time.Parse("2006-01-02T15:04:05Z", elem.(string))
+					if err != nil {
+						fmt.Println(err)
+						break
+					}
+					fmt.Printf(ts.Format(c.Poop.Format))
+				}
+			}
+			fmt.Printf("\n")
 		}
 	},
 }
