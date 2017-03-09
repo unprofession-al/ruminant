@@ -24,6 +24,7 @@ type PoopConf struct {
 	Fields []string `yaml:"fields"`
 	Start  string   `yaml:"start"`
 	End    string   `yaml:"end"`
+	Format string   `yaml:"format"`
 }
 
 type RegurgitateConf struct {
@@ -96,9 +97,10 @@ func Conf(mustExist bool) (Config, error) {
 			Port:  8086,
 		},
 		Poop: PoopConf{
-			Query: "SELECT {{ range $index, $element := .Fields }}{{if $index}},{{end}}\"{{$element}}\"{{end}} FROM \"{{.Series}}\" WHERE time > {{.Start}} AND time < {{.End}}",
-			Start: "now() - 1d",
-			End:   "now()",
+			Query:  "SELECT {{ range $index, $element := .Fields }}{{if $index}},{{end}}\"{{$element}}\"{{end}} FROM \"{{.Series}}\" WHERE time > {{.Start}} AND time < {{.End}}",
+			Start:  "now() - 1d",
+			End:    "now()",
+			Format: "02/Jan/2006 15:04",
 		},
 	}
 

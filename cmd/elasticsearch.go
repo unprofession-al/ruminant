@@ -28,15 +28,38 @@ type EsResponse struct {
 	Error        string      `json:"error"`
 }
 
+type EsError struct {
+	Error struct {
+		RootCause []struct {
+			Type   string `json:"type"`
+			Reason string `json:"reason"`
+			Line   int    `json:"line"`
+			Col    int    `json:"col"`
+		} `json:"root_cause"`
+		Type   string `json:"type"`
+		Reason string `json:"reason"`
+		Line   int    `json:"line"`
+		Col    int    `json:"col"`
+	} `json:"error"`
+	Status int `json:"status"`
+}
+
 func NewEsResponse(in io.Reader) (EsResponse, error) {
 	var response EsResponse
 	body, err := ioutil.ReadAll(in)
 	if err != nil {
 		return response, err
 	}
-
 	err = json.Unmarshal(body, &response)
-	return response, err
+	if err != nil {
+		var eserror EsError
+		nastyerr := json.Unmarshal(body, &eserror)
+		if nastyerr != nil {
+			return response, errors.New(fmt.Sprintf("Could not unmarshal response: %s. Error was %s", string(body), err.Error()))
+		}
+		return response, errors.New(fmt.Sprintf("ElasticSeach %s occured on line %d: %s", eserror.Error.Type, eserror.Error.Line, eserror.Error.Reason))
+	}
+	return response, nil
 }
 
 func (esr EsResponse) AggsAsJson() ([]byte, error) {
