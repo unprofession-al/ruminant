@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,10 @@ to the InfluxDB.`,
 			l.Fatalw("Could not create InfluxDB client", "error", err.Error())
 		}
 
+		if len(points) < 1 {
+			l.Infow("No data points to save")
+			os.Exit(0)
+		}
 		l.Infof("Saving %d data points to InfluxDB", len(points))
 		err = i.Write(points)
 		if err != nil {

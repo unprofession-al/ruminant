@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -28,11 +27,11 @@ timestamp with a given offset in relation to the current time.`,
 			l.Fatal("Could net create InfluxDB client", "error", err.Error())
 		}
 
-		l.Infof("Create InfluxDB %s", c.Gulp.Db)
-		_, err = i.Query(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", c.Gulp.Db))
-		if err != nil {
-			l.Fatal("Could not create database", "error", err.Error())
-		}
+		//l.Infof("Create InfluxDB %s", c.Gulp.Db)
+		//_, err = i.Query(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", c.Gulp.Db))
+		//if err != nil {
+		//	l.Fatal("Could not create database", "error", err.Error())
+		//}
 
 		l.Infof("Creating initial timestamp with an offset of %d hours", initOffset)
 		bp, err := client.NewBatchPoints(client.BatchPointsConfig{Database: i.DB, Precision: "s"})
