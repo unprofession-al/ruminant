@@ -21,10 +21,15 @@
 package zap
 
 import (
+	"sync"
 	"time"
 
 	"go.uber.org/zap/zapcore"
 )
+
+var _errArrayElemPool = sync.Pool{New: func() interface{} {
+	return &errArrayElem{}
+}}
 
 // Array constructs a field with the given key and ArrayMarshaler. It provides
 // a flexible, but still type-safe and efficient, way to add array-like types
@@ -36,6 +41,12 @@ func Array(key string, val zapcore.ArrayMarshaler) zapcore.Field {
 // Bools constructs a field that carries a slice of bools.
 func Bools(key string, bs []bool) zapcore.Field {
 	return Array(key, bools(bs))
+}
+
+// ByteStrings constructs a field that carries a slice of []byte, each of which
+// must be UTF-8 encoded text.
+func ByteStrings(key string, bss [][]byte) zapcore.Field {
+	return Array(key, byteStringsArray(bss))
 }
 
 // Complex128s constructs a field that carries a slice of complex numbers.
@@ -138,6 +149,15 @@ type bools []bool
 func (bs bools) MarshalLogArray(arr zapcore.ArrayEncoder) error {
 	for i := range bs {
 		arr.AppendBool(bs[i])
+	}
+	return nil
+}
+
+type byteStringsArray [][]byte
+
+func (bss byteStringsArray) MarshalLogArray(arr zapcore.ArrayEncoder) error {
+	for i := range bss {
+		arr.AppendByteString(bss[i])
 	}
 	return nil
 }
@@ -311,7 +331,25 @@ func (errs errArray) MarshalLogArray(arr zapcore.ArrayEncoder) error {
 		if errs[i] == nil {
 			continue
 		}
-		arr.AppendString(errs[i].Error())
+		// To represent each error as an object with an "error" attribute and
+		// potentially an "errorVerbose" attribute, we need to wrap it in a
+		// type that implements LogObjectMarshaler. To prevent this from
+		// allocating, pool the wrapper type.
+		elem := _errArrayElemPool.Get().(*errArrayElem)
+		elem.error = errs[i]
+		arr.AppendObject(elem)
+		elem.error = nil
+		_errArrayElemPool.Put(elem)
 	}
+	return nil
+}
+
+type errArrayElem struct {
+	error
+}
+
+func (e *errArrayElem) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	// Re-use the error field's logic, which supports non-standard error types.
+	Error(e.error).AddTo(enc)
 	return nil
 }

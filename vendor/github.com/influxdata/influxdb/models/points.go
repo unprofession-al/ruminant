@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"sort"
 	"strconv"
@@ -233,6 +234,9 @@ func ParsePointsString(buf string) ([]Point, error) {
 }
 
 // ParseKey returns the measurement name and tags from a point.
+//
+// NOTE: to minimize heap allocations, the returned Tags will refer to subslices of buf.
+// This can have the unintended effect preventing buf from being garbage collected.
 func ParseKey(buf []byte) (string, Tags, error) {
 	// Ignore the error because scanMeasurement returns "missing fields" which we ignore
 	// when just parsing a key
@@ -249,6 +253,9 @@ func ParseKey(buf []byte) (string, Tags, error) {
 
 // ParsePointsWithPrecision is similar to ParsePoints, but allows the
 // caller to provide a precision for time.
+//
+// NOTE: to minimize heap allocations, the returned Points will refer to subslices of buf.
+// This can have the unintended effect preventing buf from being garbage collected.
 func ParsePointsWithPrecision(buf []byte, defaultTime time.Time, precision string) ([]Point, error) {
 	points := make([]Point, 0, bytes.Count(buf, []byte{'\n'})+1)
 	var (
@@ -283,7 +290,7 @@ func ParsePointsWithPrecision(buf []byte, defaultTime time.Time, precision strin
 
 		pt, err := parsePoint(block[start:], defaultTime, precision)
 		if err != nil {
-			failed = append(failed, fmt.Sprintf("unable to parse '%s': %v", string(block[start:len(block)]), err))
+			failed = append(failed, fmt.Sprintf("unable to parse '%s': %v", string(block[start:]), err))
 		} else {
 			points = append(points, pt)
 		}
@@ -1486,21 +1493,36 @@ func (p *point) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary decodes a binary representation of the point into a point struct.
 func (p *point) UnmarshalBinary(b []byte) error {
-	var i int
-	keyLen := int(binary.BigEndian.Uint32(b[:4]))
-	i += int(4)
+	var n int
 
-	p.key = b[i : i+keyLen]
-	i += keyLen
+	// Read key length.
+	if len(b) < 4 {
+		return io.ErrShortBuffer
+	}
+	n, b = int(binary.BigEndian.Uint32(b[:4])), b[4:]
 
-	fieldLen := int(binary.BigEndian.Uint32(b[i : i+4]))
-	i += int(4)
+	// Read key.
+	if len(b) < n {
+		return io.ErrShortBuffer
+	}
+	p.key, b = b[:n], b[n:]
 
-	p.fields = b[i : i+fieldLen]
-	i += fieldLen
+	// Read fields length.
+	if len(b) < 4 {
+		return io.ErrShortBuffer
+	}
+	n, b = int(binary.BigEndian.Uint32(b[:4])), b[4:]
 
-	p.time = time.Now()
-	p.time.UnmarshalBinary(b[i:])
+	// Read fields.
+	if len(b) < n {
+		return io.ErrShortBuffer
+	}
+	p.fields, b = b[:n], b[n:]
+
+	// Read timestamp.
+	if err := p.time.UnmarshalBinary(b); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1617,6 +1639,22 @@ type Tag struct {
 	Value []byte
 }
 
+// Clone returns a shallow copy of Tag.
+//
+// Tags associated with a Point created by ParsePointsWithPrecision will hold references to the byte slice that was parsed.
+// Use Clone to create a Tag with new byte slices that do not refer to the argument to ParsePointsWithPrecision.
+func (t Tag) Clone() Tag {
+	other := Tag{
+		Key:   make([]byte, len(t.Key)),
+		Value: make([]byte, len(t.Value)),
+	}
+
+	copy(other.Key, t.Key)
+	copy(other.Value, t.Value)
+
+	return other
+}
+
 // Tags represents a sorted list of tags.
 type Tags []Tag
 
@@ -1631,6 +1669,23 @@ func NewTags(m map[string]string) Tags {
 	}
 	sort.Sort(a)
 	return a
+}
+
+// Clone returns a copy of the slice where the elements are a result of calling `Clone` on the original elements
+//
+// Tags associated with a Point created by ParsePointsWithPrecision will hold references to the byte slice that was parsed.
+// Use Clone to create Tags with new byte slices that do not refer to the argument to ParsePointsWithPrecision.
+func (a Tags) Clone() Tags {
+	if len(a) == 0 {
+		return nil
+	}
+
+	others := make(Tags, len(a))
+	for i := range a {
+		others[i] = a[i].Clone()
+	}
+
+	return others
 }
 
 // Len implements sort.Interface.
@@ -1759,23 +1814,6 @@ func (a Tags) HashKey() []byte {
 // Fields represents a mapping between a Point's field names and their
 // values.
 type Fields map[string]interface{}
-
-func parseNumber(val []byte) (interface{}, error) {
-	if val[len(val)-1] == 'i' {
-		val = val[:len(val)-1]
-		return parseIntBytes(val, 10, 64)
-	}
-	for i := 0; i < len(val); i++ {
-		// If there is a decimal or an N (NaN), I (Inf), parse as float
-		if val[i] == '.' || val[i] == 'N' || val[i] == 'n' || val[i] == 'I' || val[i] == 'i' || val[i] == 'e' {
-			return parseFloatBytes(val, 64)
-		}
-		if val[i] < '0' && val[i] > '9' {
-			return string(val), nil
-		}
-	}
-	return parseFloatBytes(val, 64)
-}
 
 // FieldIterator retuns a FieldIterator that can be used to traverse the
 // fields of a point without constructing the in-memory map.

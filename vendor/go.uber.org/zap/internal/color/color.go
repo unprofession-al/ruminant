@@ -18,14 +18,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package bufferpool houses zap's shared internal buffer pool. Third-party
-// packages can recreate the same functionality with buffers.NewPool.
-package bufferpool
+// Package color adds coloring functionality for TTY output.
+package color
 
-import "go.uber.org/zap/buffer"
+import "fmt"
 
-var (
-	_pool = buffer.NewPool()
-	// Get retrieves a buffer from the pool, creating one if necessary.
-	Get = _pool.Get
+// Foreground colors.
+const (
+	Black Color = iota + 30
+	Red
+	Green
+	Yellow
+	Blue
+	Magenta
+	Cyan
+	White
 )
+
+// Color represents a text color.
+type Color uint8
+
+// Add adds the coloring to the given string.
+func (c Color) Add(s string) string {
+	return fmt.Sprintf("\x1b[%dm%s\x1b[0m", uint8(c), s)
+}

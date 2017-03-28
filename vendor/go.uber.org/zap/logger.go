@@ -22,6 +22,7 @@ package zap
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -56,7 +57,7 @@ type Logger struct {
 // convenient.
 func New(core zapcore.Core, options ...Option) *Logger {
 	if core == nil {
-		core = zapcore.NewNopCore()
+		return NewNop()
 	}
 	log := &Logger{
 		core:        core,
@@ -64,6 +65,19 @@ func New(core zapcore.Core, options ...Option) *Logger {
 		addStack:    zapcore.FatalLevel + 1,
 	}
 	return log.WithOptions(options...)
+}
+
+// NewNop returns a no-op Logger. It never writes out logs or internal errors,
+// and it never runs user-defined hooks.
+//
+// Using WithOptions to replace the Core or error output of a no-op Logger can
+// re-enable logging.
+func NewNop() *Logger {
+	return &Logger{
+		core:        zapcore.NewNopCore(),
+		errorOutput: zapcore.AddSync(ioutil.Discard),
+		addStack:    zapcore.FatalLevel + 1,
+	}
 }
 
 // NewProduction builds a sensible production Logger that writes InfoLevel and
@@ -194,6 +208,11 @@ func (log *Logger) Fatal(msg string, fields ...zapcore.Field) {
 	if ce := log.check(FatalLevel, msg); ce != nil {
 		ce.Write(fields...)
 	}
+}
+
+// Sync flushes any buffered log entries.
+func (log *Logger) Sync() error {
+	return log.core.Sync()
 }
 
 // Core returns the underlying zapcore.Core.
