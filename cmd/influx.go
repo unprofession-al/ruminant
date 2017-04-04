@@ -170,7 +170,7 @@ func (i Influx) Query(cmd string) (res []client.Result, err error) {
 	q := client.Query{
 		Command:  cmd,
 		Database: i.DB,
-		Chunked:  false,
+		Chunked:  true,
 	}
 	if response, err := i.Client.Query(q); err == nil {
 		if response.Error() != nil {
