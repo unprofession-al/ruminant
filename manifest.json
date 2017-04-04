@@ -1,0 +1,22 @@
+{
+    "dependencies": {
+        "github.com/influxdata/influxdb": {
+            "branch": "master"
+        },
+        "github.com/nytlabs/gojee": {
+            "branch": "master"
+        },
+        "github.com/spf13/cobra": {
+            "branch": "master"
+        },
+        "go.uber.org/zap": {
+            "branch": "master"
+        },
+        "gopkg.in/robfig/cron.v2": {
+            "branch": "v2"
+        },
+        "gopkg.in/yaml.v2": {
+            "branch": "v2"
+        }
+    }
+}
