@@ -36,24 +36,21 @@ import (
 // Passing no paths returns a no-op WriteSyncer. The special paths "stdout" and
 // "stderr" are interpreted as os.Stdout and os.Stderr, respectively.
 func Open(paths ...string) (zapcore.WriteSyncer, func(), error) {
-	writers, close, err := open(paths)
-	if err != nil {
-		return nil, nil, err
+	if len(paths) == 0 {
+		return zapcore.AddSync(ioutil.Discard), func() {}, nil
 	}
 
-	writer := CombineWriteSyncers(writers...)
-	return writer, close, nil
+	writers, close, err := open(paths)
+	if len(writers) == 1 {
+		return zapcore.Lock(writers[0]), close, err
+	}
+	return zapcore.Lock(zapcore.NewMultiWriteSyncer(writers...)), close, err
 }
 
 func open(paths []string) ([]zapcore.WriteSyncer, func(), error) {
 	var errs multierror.Error
 	writers := make([]zapcore.WriteSyncer, 0, len(paths))
 	files := make([]*os.File, 0, len(paths))
-	close := func() {
-		for _, f := range files {
-			f.Close()
-		}
-	}
 	for _, path := range paths {
 		switch path {
 		case "stdout":
@@ -72,20 +69,10 @@ func open(paths []string) ([]zapcore.WriteSyncer, func(), error) {
 			files = append(files, f)
 		}
 	}
-
-	if err := errs.AsError(); err != nil {
-		close()
-		return writers, nil, err
+	close := func() {
+		for _, f := range files {
+			f.Close()
+		}
 	}
-
-	return writers, close, nil
-}
-
-// CombineWriteSyncers combines multiple WriteSyncers into a single, locked
-// WriteSyncer.
-func CombineWriteSyncers(writers ...zapcore.WriteSyncer) zapcore.WriteSyncer {
-	if len(writers) == 0 {
-		return zapcore.AddSync(ioutil.Discard)
-	}
-	return zapcore.Lock(zapcore.NewMultiWriteSyncer(writers...))
+	return writers, close, errs.AsError()
 }

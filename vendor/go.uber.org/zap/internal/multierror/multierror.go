@@ -38,7 +38,7 @@ func (es errSlice) Error() string {
 		b.AppendString(err.Error())
 	}
 	ret := b.String()
-	b.Free()
+	bufferpool.Put(b)
 	return ret
 }
 
