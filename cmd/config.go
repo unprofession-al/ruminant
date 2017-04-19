@@ -61,11 +61,13 @@ type RuminateConf struct {
 }
 
 type Iterator struct {
-	Selector  string            `yaml:"selector"`
-	Time      string            `yaml:"time"`
-	Tags      map[string]string `yaml:"tags"`
-	Values    map[string]string `yaml:"values"`
-	Iterators []Iterator        `yaml:"iterators"`
+	Selector    string            `yaml:"selector"`
+	Time        string            `yaml:"time"`
+	Tags        map[string]string `yaml:"tags"`
+	FixedTags   map[string]string `yaml:"fixed_tags"`
+	Values      map[string]string `yaml:"values"`
+	FixedValues map[string]string `yaml:"fixed_values"`
+	Iterators   []Iterator        `yaml:"iterators"`
 }
 
 func (i Iterator) GetStructure() (tags []string, values []string) {

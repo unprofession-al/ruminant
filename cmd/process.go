@@ -70,6 +70,10 @@ func process(j []byte, i Iterator, inherited Point, test bool) ([]Point, bool, s
 			point.Values[key] = out
 		}
 
+		for key, value := range i.FixedValues {
+			point.Values[key] = value
+		}
+
 		for key, selector := range i.Tags {
 			out, err := queryBytes(elem, selector)
 			if err != nil {
@@ -77,6 +81,10 @@ func process(j []byte, i Iterator, inherited Point, test bool) ([]Point, bool, s
 			}
 			trimmed := strings.Trim(string(out), "\"")
 			point.Tags[key] = trimmed
+		}
+
+		for key, value := range i.FixedTags {
+			point.Tags[key] = value
 		}
 
 		if len(i.Iterators) > 0 {
