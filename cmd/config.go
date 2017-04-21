@@ -74,7 +74,13 @@ func (i Iterator) GetStructure() (tags []string, values []string) {
 	for key, _ := range i.Tags {
 		tags = append(tags, key)
 	}
+	for key, _ := range i.FixedTags {
+		tags = append(tags, key)
+	}
 	for key, _ := range i.Values {
+		values = append(values, key)
+	}
+	for key, _ := range i.FixedValues {
 		values = append(values, key)
 	}
 	for _, iter := range i.Iterators {
