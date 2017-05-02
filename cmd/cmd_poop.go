@@ -61,7 +61,11 @@ CSV file. The time range can be configured.`,
 						fmt.Printf(c.Poop.Separator)
 						switch elem := elem.(type) {
 						default:
-							fmt.Printf("%v", elem)
+							if elem == nil {
+								fmt.Printf(c.Poop.ReplaceNil)
+							} else {
+								fmt.Printf("%v", elem)
+							}
 						case json.Number:
 							number, err := elem.Float64()
 							if err != nil {
