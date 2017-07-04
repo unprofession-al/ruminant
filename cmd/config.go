@@ -92,7 +92,19 @@ func (i Iterator) GetStructure() (tags []string, values []string) {
 	return
 }
 
+func DefaultPoopTime() (start string, end string) {
+	now := time.Now()
+	currentYear, currentMonth, _ := now.Date()
+	currentLocation := now.Location()
+	endDate := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, currentLocation)
+	startDate := endDate.AddDate(0, -1, 0)
+	start = "'" + startDate.Format("2006-01-02 15:04:05.000") + "'"
+	end = "'" + endDate.Format("2006-01-02 15:04:05.000") + "'"
+	return
+}
+
 func Conf(mustExist bool) (Config, error) {
+	poopStart, poopEnd := DefaultPoopTime()
 	conf := Config{
 		Regurgitate: RegurgitateConf{
 			Port:  9200,
@@ -108,8 +120,8 @@ func Conf(mustExist bool) (Config, error) {
 		},
 		Poop: PoopConf{
 			Query:      "SELECT {{ range $index, $element := .Fields }}{{if $index}},{{end}}\"{{$element}}\"{{end}} FROM \"{{.Series}}\" WHERE time > {{.Start}} AND time < {{.End}}",
-			Start:      "now() - 1d",
-			End:        "now()",
+			Start:      poopStart,
+			End:        poopEnd,
 			Format:     "02/Jan/2006 15:04",
 			Separator:  ",",
 			ReplaceNil: "[NIL]",
