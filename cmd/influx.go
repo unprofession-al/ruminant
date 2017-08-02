@@ -166,6 +166,15 @@ func (i Influx) GetLatestMarker() (t time.Time, err error) {
 	return
 }
 
+func (i Influx) DeleteLatestMarker() error {
+	q := client.Query{
+		Command:  fmt.Sprintf("DELETE FROM %s WHERE ruminant = '%s'", i.Series, i.Indicator),
+		Database: i.DB,
+	}
+	_, err := i.Client.Query(q)
+	return err
+}
+
 func (i Influx) Query(cmd string) (res []client.Result, err error) {
 	q := client.Query{
 		Command:  cmd,

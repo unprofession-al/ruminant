@@ -8,7 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var initOffset int
+var (
+	initOffset int
+	initDelete bool
+)
 
 var initCmd = &cobra.Command{
 	Use:   "init",
@@ -32,6 +35,13 @@ timestamp with a given offset in relation to the current time.`,
 		//if err != nil {
 		//	l.Fatal("Could not create database", "error", err.Error())
 		//}
+		if initDelete {
+			l.Infow("Deleting existing timestamps")
+			i.DeleteLatestMarker()
+			if err != nil {
+				l.Fatal("Could not create database", "error", err.Error())
+			}
+		}
 
 		l.Infof("Creating initial timestamp with an offset of %d hours", initOffset)
 		bp, err := client.NewBatchPoints(client.BatchPointsConfig{Database: i.DB, Precision: "s"})
@@ -51,4 +61,5 @@ timestamp with a given offset in relation to the current time.`,
 func init() {
 	RootCmd.AddCommand(initCmd)
 	initCmd.PersistentFlags().IntVarP(&initOffset, "offset", "o", 24, "Offset of the initial timestamp in hours")
+	initCmd.PersistentFlags().BoolVarP(&initDelete, "delete", "d", false, "Delete existing timestamps")
 }
