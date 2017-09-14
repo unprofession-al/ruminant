@@ -31,11 +31,12 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "1dd5ff2e11b6dca62fdcb275eb804b94607d8b06"
+			"Rev": "b78744579491c1ceeaaa3b40205e56b0591b93a3"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "25f8b5b07aece3207895bf19f7ab517eb3b22a40"
+			"Comment": "v1.0.0-3-g7aff26d",
+			"Rev": "7aff26db30c1be810f9de5038ec5ef96ac41fd7c"
 		},
 		{
 			"ImportPath": "go.uber.org/atomic",
