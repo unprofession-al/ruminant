@@ -55,6 +55,9 @@ CSV file. The time range can be configured.`,
 		wr.Write(c.Poop.Fields)
 		wr.Flush()
 		for _, chunk := range res {
+			if len(chunk.Series) < 1 {
+				continue
+			}
 			for _, point := range chunk.Series[0].Values {
 				for i, elem := range point {
 					if i != 0 {
