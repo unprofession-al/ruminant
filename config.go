@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -70,16 +69,16 @@ type Iterator struct {
 }
 
 func (i Iterator) GetStructure() (tags []string, values []string) {
-	for key, _ := range i.Tags {
+	for key := range i.Tags {
 		tags = append(tags, key)
 	}
-	for key, _ := range i.FixedTags {
+	for key := range i.FixedTags {
 		tags = append(tags, key)
 	}
-	for key, _ := range i.Values {
+	for key := range i.Values {
 		values = append(values, key)
 	}
-	for key, _ := range i.FixedValues {
+	for key := range i.FixedValues {
 		values = append(values, key)
 	}
 	for _, iter := range i.Iterators {
@@ -128,7 +127,7 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 
 	if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
 		if mustExist {
-			err = errors.New(fmt.Sprintf("Config file %s does not exist", cfgFile))
+			err = fmt.Errorf("config file %s does not exist", cfgFile)
 			return conf, err
 		} else {
 			return conf, nil
@@ -137,13 +136,13 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 
 	file, err := ioutil.ReadFile(cfgFile)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("Error while reading %s: %s", cfgFile, err.Error()))
+		err = fmt.Errorf("error while reading %s: %s", cfgFile, err.Error())
 		return conf, err
 	}
 
 	err = yaml.Unmarshal(file, &conf)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("Error while parsing %s: %s", cfgFile, err.Error()))
+		err = fmt.Errorf("error while parsing %s: %s", cfgFile, err.Error())
 		return conf, err
 	}
 

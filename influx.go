@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"reflect"
 	"text/tabwriter"
@@ -155,7 +154,7 @@ func (i Influx) GetLatestMarker() (t time.Time, err error) {
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("Latest Timestamp could not be found")
+			err = fmt.Errorf("latest Timestamp could not be found")
 			return
 		}
 	}()
@@ -194,7 +193,7 @@ func (i Influx) Query(cmd string) (res []client.Result, err error) {
 
 func (i Influx) Write(points []Point) error {
 	if len(points) < 1 {
-		return errors.New("No points to be written")
+		return fmt.Errorf("no points to be written")
 	}
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:  i.DB,

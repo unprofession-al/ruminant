@@ -205,7 +205,7 @@ func (a App) poopCmd(cmd *cobra.Command, args []string) {
 						fmt.Println(err)
 						break
 					}
-					fmt.Printf(ts.Format(c.Poop.Format))
+					fmt.Printf("%s", ts.Format(c.Poop.Format))
 				}
 			}
 			fmt.Printf("\n")

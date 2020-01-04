@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -55,9 +54,9 @@ func NewEsResponse(in io.Reader) (EsResponse, error) {
 		var eserror EsError
 		nastyerr := json.Unmarshal(body, &eserror)
 		if nastyerr != nil {
-			return response, errors.New(fmt.Sprintf("Could not unmarshal response: %s. Error was %s", string(body), err.Error()))
+			return response, fmt.Errorf("could not unmarshal response: %s. Error was %s", string(body), err.Error())
 		}
-		return response, errors.New(fmt.Sprintf("ElasticSeach %s occurred on line %d: %s", eserror.Error.Type, eserror.Error.Line, eserror.Error.Reason))
+		return response, fmt.Errorf("elasticsearch error '%s' occurred on line %d: %s", eserror.Error.Type, eserror.Error.Line, eserror.Error.Reason)
 	}
 	return response, nil
 }
@@ -102,11 +101,11 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return esr, errors.New(fmt.Sprintf("Error while executing query, status code %d, output %s", resp.StatusCode, esr.Error))
+		return esr, fmt.Errorf("error while executing query, status code %d, output %s", resp.StatusCode, esr.Error)
 	}
 
 	if esr.Shards.Failed > 0 {
-		return esr, errors.New(fmt.Sprintf("%f of %f shards failed while executing query", esr.Shards.Failed, esr.Shards.Total))
+		return esr, fmt.Errorf("%f of %f shards failed while executing query", esr.Shards.Failed, esr.Shards.Total)
 	}
 
 	return esr, nil

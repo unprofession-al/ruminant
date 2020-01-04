@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 func Burp(j []byte, i Iterator, inherited Point) ([]Point, string, error) {
 	var points []Point
 	if i.Selector == "" {
-		return points, string(j), errors.New("No selector definded")
+		return points, string(j), fmt.Errorf("no selector definded")
 	}
 	points, _, jsonFragment, err := process(j, i, inherited, true)
 	return points, jsonFragment, err
@@ -21,7 +21,7 @@ func Burp(j []byte, i Iterator, inherited Point) ([]Point, string, error) {
 func Chew(j []byte, i Iterator, inherited Point) ([]Point, error) {
 	var points []Point
 	if i.Selector == "" {
-		return points, errors.New("No selector definded")
+		return points, fmt.Errorf("no selector definded")
 	}
 	points, _, _, err := process(j, i, inherited, false)
 	return points, err
@@ -58,7 +58,7 @@ func process(j []byte, i Iterator, inherited Point, test bool) ([]Point, bool, s
 			if f, ok := out.(float64); ok {
 				point.Timestamp = time.Unix(int64(f)/1000, 0)
 			} else {
-				return results, false, " ", errors.New("Time could not be read")
+				return results, false, " ", fmt.Errorf("time could not be read")
 			}
 		}
 
