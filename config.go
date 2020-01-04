@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"errors"
@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"time"
-
-	"go.uber.org/zap"
 
 	"gopkg.in/yaml.v2"
 )
@@ -103,7 +101,7 @@ func DefaultPoopTime() (start string, end string) {
 	return
 }
 
-func Conf(mustExist bool) (Config, error) {
+func NewConf(cfgFile string, mustExist bool) (Config, error) {
 	poopStart, poopEnd := DefaultPoopTime()
 	conf := Config{
 		Regurgitate: RegurgitateConf{
@@ -157,20 +155,10 @@ func Conf(mustExist bool) (Config, error) {
 		conf.Poop.Fields = fields
 	}
 
-	SetupLogger()
-
 	return conf, nil
 }
 
 func (c Config) String() string {
 	b, _ := yaml.Marshal(c)
 	return string(b)
-}
-
-func SetupLogger() {
-	c := zap.NewDevelopmentConfig()
-	c.DisableCaller = true
-	c.DisableStacktrace = true
-	logger, _ := c.Build()
-	l = logger.Sugar()
 }

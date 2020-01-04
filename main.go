@@ -14,8 +14,39 @@
 
 package main
 
-import "github.com/unprofession-al/ruminant/cmd"
+import (
+	"fmt"
+	"os"
+)
+
+var (
+	// These variables are passed during `go build` via ldflags, for example:
+	//   go build -ldflags "-X main.commit=$(git rev-list -1 HEAD)"
+	// goreleaser (https://goreleaser.com/) does this by default.
+	version string
+	commit  string
+	date    string
+)
 
 func main() {
-	cmd.Execute()
+	err := NewApp().Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
+		os.Exit(-1)
+	}
+}
+
+// verisonInfo returns a string containing information usually passed via
+// ldflags during build time.
+func versionInfo() string {
+	if version == "" {
+		version = "dirty"
+	}
+	if commit == "" {
+		commit = "dirty"
+	}
+	if date == "" {
+		date = "unknown"
+	}
+	return fmt.Sprintf("Version:    %s\nCommit:     %s\nBuild Date: %s\n", version, commit, date)
 }

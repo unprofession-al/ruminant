@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nytlabs/gojee"
+	jee "github.com/nytlabs/gojee"
 )
 
 func Burp(j []byte, i Iterator, inherited Point) ([]Point, string, error) {

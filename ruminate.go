@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"bytes"
@@ -6,9 +6,11 @@ import (
 	"html/template"
 	"log"
 	"time"
+
+	"go.uber.org/zap"
 )
 
-func Ruminate(c Config, burp bool) []Point {
+func Ruminate(c Config, burp bool, l *zap.SugaredLogger) []Point {
 	l.Infow("Going to create InfluxDB client")
 	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
 	if err != nil {
