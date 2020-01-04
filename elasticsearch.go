@@ -57,7 +57,7 @@ func NewEsResponse(in io.Reader) (EsResponse, error) {
 		if nastyerr != nil {
 			return response, errors.New(fmt.Sprintf("Could not unmarshal response: %s. Error was %s", string(body), err.Error()))
 		}
-		return response, errors.New(fmt.Sprintf("ElasticSeach %s occured on line %d: %s", eserror.Error.Type, eserror.Error.Line, eserror.Error.Reason))
+		return response, errors.New(fmt.Sprintf("ElasticSeach %s occurred on line %d: %s", eserror.Error.Type, eserror.Error.Line, eserror.Error.Reason))
 	}
 	return response, nil
 }
@@ -84,6 +84,9 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 	var esr EsResponse
 	url := fmt.Sprintf("%s://%s:%d/%s/%s/_search?pretty", es.Proto, es.Host, es.Port, index, kind)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonQuery)))
+	if err != nil {
+		return esr, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}

@@ -32,7 +32,7 @@ func Ruminate(c Config, burp bool, l *zap.SugaredLogger) []Point {
 		l.Infow("Sampler found, building queries")
 		s, err := NewSampler(c.Regurgitate.Sampler)
 		if err != nil {
-			l.Fatalw("Error occured", "error", err.Error())
+			l.Fatalw("Error occurred", "error", err.Error())
 		}
 		sampledQueries = s.BuildQueries(c.Regurgitate.Query, latest)
 		l.Infof("A total of %d queries are built", len(sampledQueries)*c.Regurgitate.Sampler.Samples)
