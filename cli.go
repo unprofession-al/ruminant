@@ -39,6 +39,14 @@ func NewApp() *App {
 	logger, _ := c.Build()
 	a.log = logger.Sugar()
 
+	// root
+	rootCmd := &cobra.Command{
+		Use:   "ruminant",
+		Short: "Feed data from ElasticSearch to InfluxDB",
+	}
+	rootCmd.PersistentFlags().StringVarP(&a.cfgFile, "cfg", "c", "$HOME/ruminant.yaml", "configuration file path")
+	a.Execute = rootCmd.Execute
+
 	// init
 	initCmd := &cobra.Command{
 		Use:   "init",
@@ -49,6 +57,7 @@ timestamp with a given offset in relation to the current time.`,
 	}
 	initCmd.PersistentFlags().IntVarP(&a.cfg.initOffset, "offset", "o", 24, "Offset of the initial timestamp in hours")
 	initCmd.PersistentFlags().BoolVarP(&a.cfg.initDelete, "delete", "d", false, "Delete existing timestamps")
+	rootCmd.AddCommand(initCmd)
 
 	// config
 	configCmd := &cobra.Command{
@@ -59,6 +68,7 @@ is passed in via '-c' the defaults are printed. This is useful either to bootstr
 a new configuration or to debug an existig config file.`,
 		Run: a.configCmd,
 	}
+	rootCmd.AddCommand(configCmd)
 
 	// burp
 	burpCmd := &cobra.Command{
@@ -71,6 +81,7 @@ a new configuration or to debug an existig config file.`,
  or creating new ones.`,
 		Run: a.burpCmd,
 	}
+	rootCmd.AddCommand(burpCmd)
 
 	// vomit
 	vomitCmd := &cobra.Command{
@@ -80,6 +91,7 @@ a new configuration or to debug an existig config file.`,
 helpful for debugging reasons.`,
 		Run: a.vomitCmd,
 	}
+	rootCmd.AddCommand(vomitCmd)
 
 	// poop
 	poopCmd := &cobra.Command{
@@ -89,6 +101,7 @@ helpful for debugging reasons.`,
 CSV file. The time range can be configured.`,
 		Run: a.poopCmd,
 	}
+	rootCmd.AddCommand(poopCmd)
 
 	// gulp
 	gulpCmd := &cobra.Command{
@@ -100,6 +113,7 @@ At the end of this process, this also writes a new marker timestamp
 to the InfluxDB.`,
 		Run: a.gulpCmd,
 	}
+	rootCmd.AddCommand(gulpCmd)
 
 	// version
 	versionCmd := &cobra.Command{
@@ -107,21 +121,7 @@ to the InfluxDB.`,
 		Short: "Print version info",
 		Run:   a.versionCmd,
 	}
-
-	// root
-	rootCmd := &cobra.Command{
-		Use:   "ruminant",
-		Short: "Feed data from ElasticSearch to InfluxDB",
-	}
-	rootCmd.PersistentFlags().StringVarP(&a.cfgFile, "cfg", "c", "$HOME/ruminant.yaml", "configuration file path")
-	rootCmd.AddCommand(initCmd)
-	rootCmd.AddCommand(configCmd)
-	rootCmd.AddCommand(vomitCmd)
-	rootCmd.AddCommand(burpCmd)
-	rootCmd.AddCommand(gulpCmd)
-	rootCmd.AddCommand(poopCmd)
 	rootCmd.AddCommand(versionCmd)
-	a.Execute = rootCmd.Execute
 
 	return a
 }
