@@ -126,7 +126,7 @@ to the InfluxDB.`,
 	return a
 }
 
-func (a App) vomitCmd(cmd *cobra.Command, args []string) {
+func (a *App) vomitCmd(cmd *cobra.Command, args []string) {
 	c, err := NewConf(a.cfgFile, true)
 	if err != nil {
 		log.Fatal(err)
@@ -140,7 +140,7 @@ func (a App) vomitCmd(cmd *cobra.Command, args []string) {
 	}
 }
 
-func (a App) poopCmd(cmd *cobra.Command, args []string) {
+func (a *App) poopCmd(cmd *cobra.Command, args []string) {
 	c, err := NewConf(a.cfgFile, true)
 	if err != nil {
 		log.Fatal(err)
@@ -213,7 +213,7 @@ func (a App) poopCmd(cmd *cobra.Command, args []string) {
 	}
 }
 
-func (a App) initCmd(cmd *cobra.Command, args []string) {
+func (a *App) initCmd(cmd *cobra.Command, args []string) {
 	c, err := NewConf(a.cfgFile, true)
 	if err != nil {
 		log.Fatal(err)
@@ -266,7 +266,7 @@ func (a *App) burpCmd(cmd *cobra.Command, args []string) {
 	}
 }
 
-func (a App) configCmd(cmd *cobra.Command, args []string) {
+func (a *App) configCmd(cmd *cobra.Command, args []string) {
 	c, err := NewConf(a.cfgFile, false)
 	if err != nil {
 		log.Fatal(err)
@@ -275,7 +275,7 @@ func (a App) configCmd(cmd *cobra.Command, args []string) {
 	fmt.Println(c)
 }
 
-func (a App) gulpCmd(cmd *cobra.Command, args []string) {
+func (a *App) gulpCmd(cmd *cobra.Command, args []string) {
 	c, err := NewConf(a.cfgFile, true)
 	if err != nil {
 		log.Fatal(err)
@@ -301,6 +301,6 @@ func (a App) gulpCmd(cmd *cobra.Command, args []string) {
 	a.log.Infow("Data points saved")
 }
 
-func (a App) versionCmd(cmd *cobra.Command, args []string) {
+func (a *App) versionCmd(cmd *cobra.Command, args []string) {
 	fmt.Println(versionInfo())
 }
