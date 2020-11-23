@@ -11,36 +11,45 @@ import (
 )
 
 type EsResponse struct {
-	Took     float64 `json:"took"`
-	TimedOut bool    `json:"timed_out"`
+	Took     int  `json:"took"`
+	TimedOut bool `json:"timed_out"`
 	Shards   struct {
-		Total   float64 `json:"total"`
-		Success float64 `json:"success"`
-		Failed  float64 `json:"failed"`
+		Total      int `json:"total"`
+		Successful int `json:"successful"`
+		Skipped    int `json:"skipped"`
+		Failed     int `json:"failed"`
+		Failures   []struct {
+			Shard  int    `json:"shard"`
+			Index  string `json:"index"`
+			Node   string `json:"node"`
+			Reason struct {
+				Type   string `json:"type"`
+				Reason string `json:"reason"`
+			} `json:"reason"`
+		} `json:"failures"`
 	} `json:"_shards"`
 	Hits struct {
-		Total    float64     `json:"total"`
-		MaxScore float64     `json:"max_score"`
-		Hits     interface{} `json:"hits"`
+		Total struct {
+			Value    int    `json:"value"`
+			Relation string `json:"relation"`
+		} `json:"total"`
+		MaxScore interface{}   `json:"max_score"`
+		Hits     []interface{} `json:"hits"`
 	} `json:"hits"`
-	Aggregations interface{} `json:"aggregations"`
-	Error        string      `json:"error"`
-}
-
-type EsError struct {
-	Error struct {
-		RootCause []struct {
-			Type   string `json:"type"`
-			Reason string `json:"reason"`
-			Line   int    `json:"line"`
-			Col    int    `json:"col"`
-		} `json:"root_cause"`
-		Type   string `json:"type"`
-		Reason string `json:"reason"`
-		Line   int    `json:"line"`
-		Col    int    `json:"col"`
-	} `json:"error"`
-	Status int `json:"status"`
+	Aggregations struct {
+		OverTime struct {
+			Buckets []struct {
+				KeyAsString time.Time `json:"key_as_string"`
+				Key         int64     `json:"key"`
+				DocCount    int       `json:"doc_count"`
+				ByDomain    struct {
+					DocCountErrorUpperBound int           `json:"doc_count_error_upper_bound"`
+					SumOtherDocCount        int           `json:"sum_other_doc_count"`
+					Buckets                 []interface{} `json:"buckets"`
+				} `json:"by_domain"`
+			} `json:"buckets"`
+		} `json:"over_time"`
+	} `json:"aggregations"`
 }
 
 func NewEsResponse(in io.Reader) (EsResponse, error) {
@@ -51,12 +60,7 @@ func NewEsResponse(in io.Reader) (EsResponse, error) {
 	}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		var eserror EsError
-		nastyerr := json.Unmarshal(body, &eserror)
-		if nastyerr != nil {
-			return response, fmt.Errorf("could not unmarshal response: %s. Error was %s", string(body), err.Error())
-		}
-		return response, fmt.Errorf("elasticsearch error '%s' occurred on line %d: %s", eserror.Error.Type, eserror.Error.Line, eserror.Error.Reason)
+		return response, fmt.Errorf("elasticsearch error '%s' occurred on line", err.Error())
 	}
 	return response, nil
 }
@@ -68,13 +72,17 @@ func (esr EsResponse) AggsAsJson() ([]byte, error) {
 type ElasticSearch struct {
 	Proto string
 	Host  string
+	User  string
+	Pass  string
 	Port  int
 }
 
-func NewElasticSearch(proto, host string, port int) ElasticSearch {
+func NewElasticSearch(proto, host, user, pass string, port int) ElasticSearch {
 	return ElasticSearch{
 		Proto: proto,
 		Host:  host,
+		User:  user,
+		Pass:  pass,
 		Port:  port,
 	}
 }
@@ -86,6 +94,11 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 	if err != nil {
 		return esr, err
 	}
+
+	if es.User != "" && es.Pass != "" {
+		req.SetBasicAuth(es.User, es.Pass)
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -101,12 +114,14 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return esr, fmt.Errorf("error while executing query, status code %d, output %s", resp.StatusCode, esr.Error)
+		return esr, fmt.Errorf("error while executing query, status code %d, output %s", resp.StatusCode, err)
 	}
 
-	if esr.Shards.Failed > 0 {
-		return esr, fmt.Errorf("%f of %f shards failed while executing query", esr.Shards.Failed, esr.Shards.Total)
-	}
+	/*
+		if esr.Shards.Failed > 0 {
+			return esr, fmt.Errorf("%d of %d shards failed while executing query", esr.Shards.Failed, esr.Shards.Total)
+		}
+	*/
 
 	return esr, nil
 }

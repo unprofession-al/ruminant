@@ -27,13 +27,15 @@ type PoopConf struct {
 }
 
 type RegurgitateConf struct {
-	Host    string        `yaml:"host"`
-	Port    int           `yaml:"port"`
-	Proto   string        `yaml:"proto"`
-	Index   string        `yaml:"index"`
-	Type    string        `yaml:"type"`
-	Query   string        `yaml:"query"`
-	Sampler SamplerConfig `yaml:"sampler"`
+	Host     string        `yaml:"host"`
+	Port     int           `yaml:"port"`
+	Proto    string        `yaml:"proto"`
+	User     string        `yaml:"user"`
+	Password string        `yaml:"password"`
+	Index    string        `yaml:"index"`
+	Type     string        `yaml:"type"`
+	Query    string        `yaml:"query"`
+	Sampler  SamplerConfig `yaml:"sampler"`
 }
 
 type SamplerConfig struct {

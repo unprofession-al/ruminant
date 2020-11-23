@@ -19,8 +19,9 @@ type App struct {
 	cfgFile string
 
 	cfg struct {
-		initOffset int
-		initDelete bool
+		initOffset             int
+		initDelete             bool
+		initialMarkerOverwrite string
 	}
 
 	log *zap.SugaredLogger
@@ -44,6 +45,7 @@ func NewApp() *App {
 		Use:   "ruminant",
 		Short: "Feed data from ElasticSearch to InfluxDB",
 	}
+	rootCmd.PersistentFlags().StringVarP(&a.cfg.initialMarkerOverwrite, "marker", "m", "none", "Initial marker to overwrite, as RFC3339")
 	rootCmd.PersistentFlags().StringVarP(&a.cfgFile, "cfg", "c", "$HOME/ruminant.yaml", "configuration file path")
 	a.Execute = rootCmd.Execute
 
@@ -132,7 +134,11 @@ func (a *App) vomitCmd(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	points := Ruminate(c, false, a.log)
+	from, err := GetFromDate(c, a.cfg.initialMarkerOverwrite)
+	if err != nil {
+		a.log.Fatal("Could fetch 'from' date", "error", err.Error())
+	}
+	points := Ruminate(c, false, from, a.log)
 
 	a.log.Infof("Printing data points\n")
 	for _, p := range points {
@@ -258,7 +264,11 @@ func (a *App) burpCmd(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	points := Ruminate(c, true, a.log)
+	from, err := GetFromDate(c, a.cfg.initialMarkerOverwrite)
+	if err != nil {
+		a.log.Fatal("Could fetch 'from' date", "error", err.Error())
+	}
+	points := Ruminate(c, true, from, a.log)
 
 	a.log.Infof("Printing sample data point\n")
 	for _, p := range points {
@@ -281,7 +291,11 @@ func (a *App) gulpCmd(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	points := Ruminate(c, false, a.log)
+	from, err := GetFromDate(c, a.cfg.initialMarkerOverwrite)
+	if err != nil {
+		a.log.Fatal("Could fetch 'from' date", "error", err.Error())
+	}
+	points := Ruminate(c, false, from, a.log)
 
 	a.log.Infow("Going to create InfluxDB client")
 	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)

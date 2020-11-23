@@ -10,21 +10,29 @@ import (
 	"go.uber.org/zap"
 )
 
-func Ruminate(c Config, burp bool, l *zap.SugaredLogger) []Point {
-	l.Infow("Going to create InfluxDB client")
-	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
-	if err != nil {
-		l.Fatal("Could net create InfluxDB client", "error", err.Error())
-	}
+func GetFromDate(c Config, markerOverwrite string) (time.Time, error) {
+	var err error
+	latest := time.Now()
+	if markerOverwrite == "none" {
+		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
+		if err != nil {
+			return latest, fmt.Errorf("Could net create InfluxDB client: %s", err.Error())
+		}
 
-	l.Infow("Getting latest timestamp from InfluxDB")
-	latest, err := i.GetLatestMarker()
-	if err != nil {
-		l.Fatalw("Could not get latest timestamp in series. How you already prepared the database with 'init'?", "error", err.Error())
+		latest, err = i.GetLatestMarker()
+		if err != nil {
+			return latest, fmt.Errorf("Could not get latest timestamp in series. How you already prepared the database with 'init'?: %s", err.Error())
+		}
+	} else {
+		latest, err = time.Parse(time.RFC3339, markerOverwrite)
 	}
-	l.Infof("Latest entry at %s", latest.Format("2006-01-02 15:04:05"))
+	return latest, err
+}
 
-	es := NewElasticSearch(c.Regurgitate.Proto, c.Regurgitate.Host, c.Regurgitate.Port)
+func Ruminate(c Config, burp bool, from time.Time, l *zap.SugaredLogger) []Point {
+	l.Infof("Reading data starting from %s", from.Format("2006-01-02 15:04:05"))
+
+	es := NewElasticSearch(c.Regurgitate.Proto, c.Regurgitate.Host, c.Regurgitate.User, c.Regurgitate.Password, c.Regurgitate.Port)
 
 	sampledQueries := make(map[time.Time][]string)
 	interv := c.Regurgitate.Sampler.Interval
@@ -34,14 +42,14 @@ func Ruminate(c Config, burp bool, l *zap.SugaredLogger) []Point {
 		if err != nil {
 			l.Fatalw("Error occurred", "error", err.Error())
 		}
-		sampledQueries = s.BuildQueries(c.Regurgitate.Query, latest)
+		sampledQueries = s.BuildQueries(c.Regurgitate.Query, from)
 		l.Infof("A total of %d queries are built", len(sampledQueries)*c.Regurgitate.Sampler.Samples)
 	} else {
 		l.Infow("No sampler config found, building simple query")
 		t := template.Must(template.New("t1").Parse(c.Regurgitate.Query))
 		var query bytes.Buffer
-		t.Execute(&query, ToEsTimestamp(latest))
-		sampledQueries[latest] = []string{query.String()}
+		t.Execute(&query, ToEsTimestamp(from))
+		sampledQueries[from] = []string{query.String()}
 	}
 
 	var points []Point
@@ -53,6 +61,7 @@ func Ruminate(c Config, burp bool, l *zap.SugaredLogger) []Point {
 		var samples []Point
 		l.Infof("Sampling @ %s", ts.Format("2006-01-02 15:04:05"))
 		for i, query := range queries {
+			fmt.Printf("\n\n---\n\n%s\n\n---\n\n", query)
 			l.Infof("-- Query ElasticSearch for sample %d", i)
 			result, err := es.Query(c.Regurgitate.Index, c.Regurgitate.Type, query)
 			if err != nil {

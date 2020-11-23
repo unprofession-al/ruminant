@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -29,6 +30,7 @@ func Chew(j []byte, i Iterator, inherited Point) ([]Point, error) {
 
 func process(j []byte, i Iterator, inherited Point, test bool) ([]Point, bool, string, error) {
 	var results []Point
+	fmt.Printf("\n\n---\n\n%s\n\n---\n\n", j)
 
 	selected, err := queryBytes(j, i.Selector)
 	if err != nil {
@@ -118,15 +120,16 @@ func queryBytes(j []byte, q string) ([]byte, error) {
 }
 
 func query(j []byte, q string) (interface{}, error) {
+	j = bytes.ReplaceAll(j, []byte("buckets\":null"), []byte("buckets\":[]"))
 	var umsg jee.BMsg
 	l, err := jee.Lexer(q)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Lexer error: %s", err.Error())
 	}
 
 	tree, err := jee.Parser(l)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Parser error: %s", err.Error())
 	}
 
 	err = json.Unmarshal(j, &umsg)
@@ -136,7 +139,8 @@ func query(j []byte, q string) (interface{}, error) {
 
 	result, err := jee.Eval(tree, umsg)
 	if err != nil {
-		return nil, err
+		fmt.Printf("\n\n---\n\n%s\n\n---\n\n", j)
+		return nil, fmt.Errorf("Eval error: %s", err.Error())
 	}
 	return result, nil
 }
