@@ -10,7 +10,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/influxdata/influxdb/client/v2"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -225,10 +224,10 @@ func (a *App) initCmd(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	a.log.Infow("Going to create InfluxDB client")
-	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
+	a.log.Infow("Going to create Timestream client")
+	t, err := NewTimestream(c.Gulp.Db, c.Gulp.Series, c.Gulp.Indicator, "eu-west-1")
 	if err != nil {
-		a.log.Fatal("Could net create InfluxDB client", "error", err.Error())
+		a.log.Fatal("Could net create Timestream client", "error", err.Error())
 	}
 
 	//a.log.Infof("Create InfluxDB %s", c.Gulp.Db)
@@ -236,24 +235,16 @@ func (a *App) initCmd(cmd *cobra.Command, args []string) {
 	//if err != nil {
 	//	a.log.Fatal("Could not create database", "error", err.Error())
 	//}
-	if a.cfg.initDelete {
-		a.log.Infow("Deleting existing timestamps")
-		i.DeleteLatestMarker()
-		if err != nil {
-			a.log.Fatal("Could not create database", "error", err.Error())
-		}
-	}
-
-	a.log.Infof("Creating initial timestamp with an offset of %d hours", a.cfg.initOffset)
-	bp, err := client.NewBatchPoints(client.BatchPointsConfig{Database: i.DB, Precision: "s"})
-	if err != nil {
-		a.log.Fatal("Could create initial timestamp", "error", err.Error())
-	}
+	//if a.cfg.initDelete {
+	//	a.log.Infow("Deleting existing timestamps")
+	//	i.DeleteLatestMarker()
+	//	if err != nil {
+	//		a.log.Fatal("Could not create database", "error", err.Error())
+	//	}
+	//}
 
 	timestamp := time.Now().Add(-(time.Hour * time.Duration(a.cfg.initOffset)))
-	bp.AddPoint(i.LatestMarker(timestamp, "init"))
-
-	if err := i.Client.Write(bp); err != nil {
+	if err := t.LatestMarker(timestamp, "init"); err != nil {
 		a.log.Fatal("Could save initial timestamp", "error", err.Error())
 	}
 }
@@ -268,6 +259,7 @@ func (a *App) burpCmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		a.log.Fatal("Could fetch 'from' date", "error", err.Error())
 	}
+	fmt.Println(from)
 	points := Ruminate(c, true, from, a.log)
 
 	a.log.Infof("Printing sample data point\n")
@@ -298,7 +290,7 @@ func (a *App) gulpCmd(cmd *cobra.Command, args []string) {
 	points := Ruminate(c, false, from, a.log)
 
 	a.log.Infow("Going to create InfluxDB client")
-	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
+	t, err := NewTimestream(c.Gulp.Db, c.Gulp.Series, c.Gulp.Indicator, "eu-west-1")
 	if err != nil {
 		a.log.Fatalw("Could not create InfluxDB client", "error", err.Error())
 	}
@@ -308,7 +300,7 @@ func (a *App) gulpCmd(cmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 	a.log.Infof("Saving %d data points to InfluxDB", len(points))
-	err = i.Write(points)
+	err = t.Write(points)
 	if err != nil {
 		a.log.Fatalw("Could not write data to InfluxDB", "error", err.Error())
 	}

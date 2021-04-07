@@ -14,12 +14,13 @@ func GetFromDate(c Config, markerOverwrite string) (time.Time, error) {
 	var err error
 	latest := time.Now()
 	if markerOverwrite == "none" {
-		i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
+		t, err := NewTimestream(c.Gulp.Db, c.Gulp.Series, c.Gulp.Indicator, "eu-west-1")
+
 		if err != nil {
 			return latest, fmt.Errorf("Could net create InfluxDB client: %s", err.Error())
 		}
 
-		latest, err = i.GetLatestMarker()
+		latest, err = t.GetLatestMarker()
 		if err != nil {
 			return latest, fmt.Errorf("Could not get latest timestamp in series. How you already prepared the database with 'init'?: %s", err.Error())
 		}

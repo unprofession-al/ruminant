@@ -1,0 +1,552 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": "Amazon Timestream",
+        "enable": true,
+        "hide": false,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "limit": 100,
+        "name": "RUMINANT",
+        "showIn": 0,
+        "tags": [],
+        "target": {
+          "queryType": "raw",
+          "rawQuery": "SELECT * FROM \"test_ltmed\".\"test\" WHERE measure_name = 'RUMINANT_LAST_RUN'",
+          "refId": "Anno"
+        },
+        "type": "tags"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": 1,
+  "iteration": 1606651896002,
+  "links": [],
+  "panels": [
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null,
+            "filterable": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "hiddenSeries": false,
+      "id": 2,
+      "interval": "10m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "connected",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "database": "test_ltmed",
+          "hide": false,
+          "measure": "uniq_users",
+          "queryType": "raw",
+          "rawQuery": "SELECT domain, CREATE_TIME_SERIES(time, measure_value::double) AS $__measure\n FROM $__database.$__table\n  WHERE $__timeFilter\n    AND domain = '${domain}'\n    AND measure_name = '$__measure'\n GROUP BY domain",
+          "refId": "B",
+          "table": "test"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Uniq Users",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null,
+            "filterable": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "hiddenSeries": false,
+      "id": 3,
+      "interval": "10m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "connected",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "database": "test_ltmed",
+          "hide": false,
+          "measure": "bytes_sent",
+          "queryType": "raw",
+          "rawQuery": "SELECT domain, CREATE_TIME_SERIES(time, measure_value::double) AS $__measure\n FROM $__database.$__table\n  WHERE $__timeFilter\n    AND domain = '${domain}'\n    AND measure_name = '$__measure'\n GROUP BY domain",
+          "refId": "B",
+          "table": "test"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Bytes Sent",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null,
+            "filterable": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "hiddenSeries": false,
+      "id": 4,
+      "interval": "10m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "connected",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "database": "test_ltmed",
+          "hide": false,
+          "measure": "request_count",
+          "queryType": "raw",
+          "rawQuery": "SELECT domain, CREATE_TIME_SERIES(time, measure_value::double) AS $__measure\n FROM $__database.$__table\n  WHERE $__timeFilter\n    AND domain = '${domain}'\n    AND measure_name = '$__measure'\n GROUP BY domain",
+          "refId": "B",
+          "table": "test"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Request Count",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    }
+  ],
+  "refresh": false,
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "tags": [],
+          "text": [
+            "print.geo.admin.ch"
+          ],
+          "value": [
+            "print.geo.admin.ch"
+          ]
+        },
+        "datasource": "Amazon Timestream",
+        "definition": "SELECT DISTINCT domain FROM \"test_ltmed\".\"test\" WHERE domain != '-'",
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": true,
+        "name": "domain",
+        "options": [
+          {
+            "selected": false,
+            "text": "d30j66394zjjqg.cloudfront.net",
+            "value": "d30j66394zjjqg.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "service-print.int.bgdi.ch",
+            "value": "service-print.int.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "da56nb3a0oxc2.cloudfront.net",
+            "value": "da56nb3a0oxc2.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "service-proxy.bgdi.swisstopo.cloud",
+            "value": "service-proxy.bgdi.swisstopo.cloud"
+          },
+          {
+            "selected": false,
+            "text": "proxy.geo.admin.ch",
+            "value": "proxy.geo.admin.ch"
+          },
+          {
+            "selected": false,
+            "text": "d3cg7xr08eqxi2.cloudfront.net",
+            "value": "d3cg7xr08eqxi2.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "d32ysmqqe51qc0.cloudfront.net",
+            "value": "d32ysmqqe51qc0.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "service-proxy.int.bgdi.ch",
+            "value": "service-proxy.int.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "web-mapviewer.int.bgdi.ch",
+            "value": "web-mapviewer.int.bgdi.ch"
+          },
+          {
+            "selected": true,
+            "text": "print.geo.admin.ch",
+            "value": "print.geo.admin.ch"
+          },
+          {
+            "selected": false,
+            "text": "web-mapviewer.dev.bgdi.ch",
+            "value": "web-mapviewer.dev.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "service-stac.int.bgdi.ch",
+            "value": "service-stac.int.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "d2mkgv9rtnk6b3.cloudfront.net",
+            "value": "d2mkgv9rtnk6b3.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "service-print.bgdi.swisstopo.cloud",
+            "value": "service-print.bgdi.swisstopo.cloud"
+          },
+          {
+            "selected": false,
+            "text": "web-mapviewer.bgdi.ch",
+            "value": "web-mapviewer.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "service-proxy-kubernetes.int.bgdi.ch",
+            "value": "service-proxy-kubernetes.int.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "d1dlzcqy5tbm7c.cloudfront.net",
+            "value": "d1dlzcqy5tbm7c.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "d1nklrhr3sy9k.cloudfront.net",
+            "value": "d1nklrhr3sy9k.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "service-proxy.prod.bgdi.ch",
+            "value": "service-proxy.prod.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "service-print.prod.bgdi.ch",
+            "value": "service-print.prod.bgdi.ch"
+          },
+          {
+            "selected": false,
+            "text": "d1o38fj0abrpwc.cloudfront.net",
+            "value": "d1o38fj0abrpwc.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "d31g1g32fxho2m.cloudfront.net",
+            "value": "d31g1g32fxho2m.cloudfront.net"
+          },
+          {
+            "selected": false,
+            "text": "d3fwur9vyzqd45.cloudfront.net",
+            "value": "d3fwur9vyzqd45.cloudfront.net"
+          }
+        ],
+        "query": "SELECT DISTINCT domain FROM \"test_ltmed\".\"test\" WHERE domain != '-'",
+        "refresh": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "2020-11-02T07:08:45.806Z",
+    "to": "2020-11-07T08:22:26.272Z"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "test",
+  "uid": "3dMDFc0Mz",
+  "version": 5
+}
