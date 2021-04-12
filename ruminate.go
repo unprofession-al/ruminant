@@ -68,7 +68,7 @@ func Ruminate(c Config, burp bool, from time.Time, l *zap.SugaredLogger) []Point
 			if err != nil {
 				l.Fatalw("-- Query failed", "error", err.Error())
 			}
-			j, err := result.AggsAsJson()
+			j, err := result.AggsAsJSON()
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -93,7 +93,7 @@ func Ruminate(c Config, burp bool, from time.Time, l *zap.SugaredLogger) []Point
 				l.Fatalw("Could not process data", "error", err.Error())
 			}
 			samples = append(samples, sample...)
-			processed += 1
+			processed++
 		}
 
 		if c.Regurgitate.Sampler.Samples > 1 {

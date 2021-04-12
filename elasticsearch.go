@@ -65,7 +65,7 @@ func NewEsResponse(in io.Reader) (EsResponse, error) {
 	return response, nil
 }
 
-func (esr EsResponse) AggsAsJson() ([]byte, error) {
+func (esr EsResponse) AggsAsJSON() ([]byte, error) {
 	return json.Marshal(esr.Aggregations)
 }
 

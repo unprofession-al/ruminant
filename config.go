@@ -131,9 +131,8 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 		if mustExist {
 			err = fmt.Errorf("config file %s does not exist", cfgFile)
 			return conf, err
-		} else {
-			return conf, nil
 		}
+		return conf, nil
 	}
 
 	file, err := ioutil.ReadFile(cfgFile)

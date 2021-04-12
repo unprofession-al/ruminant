@@ -45,13 +45,12 @@ func (i Influx) GetLatestMarker() (t time.Time, err error) {
 	response, err := i.Client.Query(q)
 	if err != nil {
 		return
-	} else {
-		if response.Error() != nil {
-			err = response.Error()
-			return
-		}
-		res = response.Results
 	}
+	if response.Error() != nil {
+		err = response.Error()
+		return
+	}
+	res = response.Results
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("latest Timestamp could not be found")
