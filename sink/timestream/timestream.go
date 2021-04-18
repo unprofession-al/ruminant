@@ -1,9 +1,10 @@
-package main
+package timestream
 
 import (
 	"fmt"
 	"net"
 	"net/http"
+	"ruminant/sink"
 	"strconv"
 	"time"
 
@@ -14,16 +15,32 @@ import (
 	"golang.org/x/net/http2"
 )
 
+func init() {
+	sink.Register("timestream", setup)
+}
+
 type Timestream struct {
 	DB          string
 	WriteClient *timestreamwrite.TimestreamWrite
 	QueryClient *timestreamquery.TimestreamQuery
 	Series      string
-	Indicator   string
 }
 
-func NewTimestream(db, series, indicator, region string) (Timestream, error) {
+func setup(config map[string]string) (sink.Sink, error) {
 	t := Timestream{}
+
+	var db, series, region string
+	var found bool
+
+	if db, found = config["db"]; !found || db == "" {
+		return t, fmt.Errorf("sink requires field 'db' to be set")
+	}
+	if series, found = config["series"]; !found || series == "" {
+		return t, fmt.Errorf("sink requires field 'series' to be set")
+	}
+	if region, found = config["region"]; !found || region == "" {
+		return t, fmt.Errorf("sink requires field 'region' to be set")
+	}
 
 	tr := &http.Transport{
 		ResponseHeaderTimeout: 20 * time.Second,
@@ -50,29 +67,11 @@ func NewTimestream(db, series, indicator, region string) (Timestream, error) {
 
 	t.DB = db
 	t.Series = series
-	t.Indicator = indicator
 
 	return t, nil
 }
 
-func (t Timestream) GetLatestMarker() (tm time.Time, err error) {
-	// SELECT max(time) as latest_time FROM "test_ltmed".test WHERE measure_name = 'RUMINANT_LAST_RUN' AND ruminant = 'lsa_segmented'
-	q := &timestreamquery.QueryInput{
-		QueryString: aws.String(fmt.Sprintf("SELECT max(time) as latest_time FROM \"%s\".%s WHERE measure_name = '%s' AND ruminant = '%s'", t.DB, t.Series, LatestIndicator, t.Indicator)),
-	}
-	response, err := t.QueryClient.Query(q)
-	if err != nil {
-		return
-	}
-	timestamp := *response.Rows[0].Data[0].ScalarValue
-	tm, err = time.Parse("2006-01-02 15:04:05.000000000", timestamp)
-	if err != nil {
-		return
-	}
-	return
-}
-
-func (t Timestream) Write(points []Point) error {
+func (t Timestream) Write(points []sink.Point) error {
 	if len(points) < 1 {
 		return fmt.Errorf("no points to be written")
 	}
@@ -129,34 +128,5 @@ func (t Timestream) Write(points []Point) error {
 		}
 	}
 
-	if err := t.LatestMarker(newest, "write"); err != nil {
-		return fmt.Errorf("Error while writing marker: %s", err.Error())
-	}
 	return nil
-}
-
-func (t Timestream) LatestMarker(tm time.Time, note string) error {
-	timeInSeconds := tm.Unix()
-	writeRecordsInput := &timestreamwrite.WriteRecordsInput{
-		DatabaseName: aws.String(t.DB),
-		TableName:    aws.String(t.Series),
-		Records: []*timestreamwrite.Record{
-			&timestreamwrite.Record{
-				Dimensions: []*timestreamwrite.Dimension{
-					&timestreamwrite.Dimension{
-						Name:  aws.String("ruminant"),
-						Value: aws.String(t.Indicator),
-					},
-				},
-				MeasureName:      aws.String(LatestIndicator),
-				MeasureValue:     aws.String(fmt.Sprintf("%s: %s", t.Indicator, note)),
-				MeasureValueType: aws.String("VARCHAR"),
-				Time:             aws.String(strconv.FormatInt(timeInSeconds, 10)),
-				TimeUnit:         aws.String("SECONDS"),
-			},
-		},
-	}
-
-	_, err := t.WriteClient.WriteRecords(writeRecordsInput)
-	return err
 }

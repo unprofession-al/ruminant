@@ -11,6 +11,7 @@ require (
 	github.com/spf13/cobra v0.0.0-20170905172051-b78744579491
 	github.com/spf13/pflag v1.0.1-0.20170901120850-7aff26db30c1 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/tj/go-naturaldate v1.3.0 // indirect
 	go.uber.org/atomic v1.1.0 // indirect
 	go.uber.org/zap v1.0.0-rc.1.0.20170216044757-066278dd4c1d
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b

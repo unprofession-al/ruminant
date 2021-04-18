@@ -1,4 +1,4 @@
-package main
+package sink
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ type Point struct {
 	Values    map[string]interface{}
 }
 
-func Avg(points []Point, samples int) []Point {
+func PointAvg(points []Point, samples int) []Point {
 	var measurements []Point
 	for _, point := range points {
 		found := false

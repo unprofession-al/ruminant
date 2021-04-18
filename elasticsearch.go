@@ -117,11 +117,9 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 		return esr, fmt.Errorf("error while executing query, status code %d, output %s", resp.StatusCode, err)
 	}
 
-	/*
-		if esr.Shards.Failed > 0 {
-			return esr, fmt.Errorf("%d of %d shards failed while executing query", esr.Shards.Failed, esr.Shards.Total)
-		}
-	*/
+	if esr.Shards.Failed > 0 {
+		return esr, fmt.Errorf("%d of %d shards failed while executing query", esr.Shards.Failed, esr.Shards.Total)
+	}
 
 	return esr, nil
 }

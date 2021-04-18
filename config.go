@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"ruminant/sink"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -12,15 +13,13 @@ import (
 type Config struct {
 	Regurgitate RegurgitateConf `yaml:"regurgitate"`
 	Ruminate    RuminateConf    `yaml:"ruminate"`
-	Gulp        GulpConf        `yaml:"gulp"`
+	Gulp        sink.Config     `yaml:"gulp"`
 	Poop        PoopConf        `yaml:"poop"`
 }
 
 type PoopConf struct {
 	Query      string   `yaml:"query"`
 	Fields     []string `yaml:"fields"`
-	Start      string   `yaml:"start"`
-	End        string   `yaml:"end"`
 	Format     string   `yaml:"format"`
 	Separator  string   `yaml:"separator"`
 	ReplaceNil string   `yaml:"replace_nil"`
@@ -43,17 +42,6 @@ type SamplerConfig struct {
 	Samples      int           `yaml:"samples"`
 	SampleOffset time.Duration `yaml:"sample_offset"`
 	Interval     string        `yaml:"interval"`
-}
-
-type GulpConf struct {
-	Host      string `yaml:"host"`
-	Port      int    `yaml:"port"`
-	Db        string `yaml:"db"`
-	Proto     string `yaml:"proto"`
-	Series    string `yaml:"series"`
-	User      string `yaml:"user"`
-	Pass      string `yaml:"pass"`
-	Indicator string `yaml:"indicator"`
 }
 
 type RuminateConf struct {
@@ -91,19 +79,7 @@ func (i Iterator) GetStructure() (tags []string, values []string) {
 	return
 }
 
-func DefaultPoopTime() (start string, end string) {
-	now := time.Now()
-	currentYear, currentMonth, _ := now.Date()
-	currentLocation := now.Location()
-	endDate := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, currentLocation)
-	startDate := endDate.AddDate(0, -1, 0)
-	start = "'" + startDate.Format("2006-01-02 15:04:05.000") + "'"
-	end = "'" + endDate.Format("2006-01-02 15:04:05.000") + "'"
-	return
-}
-
 func NewConf(cfgFile string, mustExist bool) (Config, error) {
-	poopStart, poopEnd := DefaultPoopTime()
 	conf := Config{
 		Regurgitate: RegurgitateConf{
 			Port:  9200,
@@ -113,14 +89,8 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 				Samples: 1,
 			},
 		},
-		Gulp: GulpConf{
-			Proto: "http",
-			Port:  8086,
-		},
+		Gulp: sink.Config{},
 		Poop: PoopConf{
-			Query:      "SELECT {{ range $index, $element := .Fields }}{{if $index}},{{end}}\"{{$element}}\"{{end}} FROM \"{{.Series}}\" WHERE time > {{.Start}} AND time < {{.End}}",
-			Start:      poopStart,
-			End:        poopEnd,
 			Format:     "02/Jan/2006 15:04",
 			Separator:  ",",
 			ReplaceNil: "[NIL]",

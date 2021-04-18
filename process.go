@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"ruminant/sink"
 	"strings"
 	"time"
 
 	jee "github.com/nytlabs/gojee"
 )
 
-func Burp(j []byte, i Iterator, inherited Point) ([]Point, string, error) {
-	var points []Point
+func Burp(j []byte, i Iterator, inherited sink.Point) ([]sink.Point, string, error) {
+	var points []sink.Point
 	if i.Selector == "" {
 		return points, string(j), fmt.Errorf("no selector definded")
 	}
@@ -19,8 +20,8 @@ func Burp(j []byte, i Iterator, inherited Point) ([]Point, string, error) {
 	return points, jsonFragment, err
 }
 
-func Chew(j []byte, i Iterator, inherited Point) ([]Point, error) {
-	var points []Point
+func Chew(j []byte, i Iterator, inherited sink.Point) ([]sink.Point, error) {
+	var points []sink.Point
 	if i.Selector == "" {
 		return points, fmt.Errorf("no selector definded")
 	}
@@ -28,9 +29,9 @@ func Chew(j []byte, i Iterator, inherited Point) ([]Point, error) {
 	return points, err
 }
 
-func process(j []byte, i Iterator, inherited Point, test bool) ([]Point, bool, string, error) {
-	var results []Point
-	fmt.Printf("\n\n---\n\n%s\n\n---\n\n", j)
+func process(j []byte, i Iterator, inherited sink.Point, test bool) ([]sink.Point, bool, string, error) {
+	var results []sink.Point
+	// fmt.Printf("\n\n---\n\n%s\n\n---\n\n", j)
 
 	selected, err := queryBytes(j, i.Selector)
 	if err != nil {

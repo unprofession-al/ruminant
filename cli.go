@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"text/template"
+	"ruminant/sink"
+	_ "ruminant/sink/influx"
+	_ "ruminant/sink/timestream"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,9 +17,8 @@ type App struct {
 	cfgFile string
 
 	cfg struct {
-		initOffset             int
-		initDelete             bool
-		initialMarkerOverwrite string
+		from string
+		to   string
 	}
 
 	log *zap.SugaredLogger
@@ -39,26 +37,18 @@ func NewApp() *App {
 	logger, _ := c.Build()
 	a.log = logger.Sugar()
 
+	// prepare time
+	now := time.Now().Format(time.RFC3339)
+
 	// root
 	rootCmd := &cobra.Command{
 		Use:   "ruminant",
-		Short: "Feed data from ElasticSearch to InfluxDB",
+		Short: "Feed data from ElasticSearch to sink",
 	}
-	rootCmd.PersistentFlags().StringVarP(&a.cfg.initialMarkerOverwrite, "marker", "m", "none", "Initial marker to overwrite, as RFC3339")
+	rootCmd.PersistentFlags().StringVarP(&a.cfg.from, "from", "f", "none", "Beginning of the time frame to query, as RFC3339")
+	rootCmd.PersistentFlags().StringVarP(&a.cfg.to, "to", "t", now, "End of the time frame to query, as RFC3339")
 	rootCmd.PersistentFlags().StringVarP(&a.cfgFile, "cfg", "c", "$HOME/ruminant.yaml", "configuration file path")
 	a.Execute = rootCmd.Execute
-
-	// init
-	initCmd := &cobra.Command{
-		Use:   "init",
-		Short: "Prepares the InfluxDB to be used with Ruminant",
-		Long: `Creates the InfluxDB as configured at sets an initial marker
-timestamp with a given offset in relation to the current time.`,
-		Run: a.initCmd,
-	}
-	initCmd.PersistentFlags().IntVarP(&a.cfg.initOffset, "offset", "o", 24, "Offset of the initial timestamp in hours")
-	initCmd.PersistentFlags().BoolVarP(&a.cfg.initDelete, "delete", "d", false, "Delete existing timestamps")
-	rootCmd.AddCommand(initCmd)
 
 	// config
 	configCmd := &cobra.Command{
@@ -97,8 +87,8 @@ helpful for debugging reasons.`,
 	// poop
 	poopCmd := &cobra.Command{
 		Use:   "poop",
-		Short: "Dump data from InfluxDB to stdout",
-		Long: `Dumps the content of the InfluxDB to the standard output as
+		Short: "Dump data from sink to stdout",
+		Long: `Dumps the content of the sink to the standard output as
 CSV file. The time range can be configured.`,
 		Run: a.poopCmd,
 	}
@@ -109,9 +99,9 @@ CSV file. The time range can be configured.`,
 		Use:   "gulp",
 		Short: "Feed data to InfuxDB",
 		Long: `Query the ElasticSearch Database, Process the results add feed the
-time series data points generated to the InfluxDB configured. This
+time series data points generated to the sink configured. This
 At the end of this process, this also writes a new marker timestamp
-to the InfluxDB.`,
+to the sink.`,
 		Run: a.gulpCmd,
 	}
 	rootCmd.AddCommand(gulpCmd)
@@ -133,11 +123,18 @@ func (a *App) vomitCmd(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	from, err := GetFromDate(c, a.cfg.initialMarkerOverwrite)
+	from, err := parseTimeString(a.cfg.from)
 	if err != nil {
-		a.log.Fatal("Could fetch 'from' date", "error", err.Error())
+		a.log.Fatal("Could not parse 'from' date", " error ", err.Error())
 	}
-	points := Ruminate(c, false, from, a.log)
+	to, err := parseTimeString(a.cfg.to)
+	if err != nil {
+		a.log.Fatal("Could not parse 'to' date ", " error ", err.Error())
+	}
+	a.log.Infof("Staring at %s", from.Format(time.RFC3339))
+	a.log.Infof("Ending at %s", to.Format(time.RFC3339))
+
+	points := Ruminate(c, false, from, to, a.log)
 
 	a.log.Infof("Printing data points\n")
 	for _, p := range points {
@@ -146,107 +143,78 @@ func (a *App) vomitCmd(cmd *cobra.Command, args []string) {
 }
 
 func (a *App) poopCmd(cmd *cobra.Command, args []string) {
-	c, err := NewConf(a.cfgFile, true)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	i, err := NewInflux(c.Gulp.Host, c.Gulp.Proto, c.Gulp.Db, c.Gulp.User, c.Gulp.Pass, c.Gulp.Series, c.Gulp.Indicator, c.Gulp.Port)
-	if err != nil {
-		a.log.Fatalw("Could not create InfluxDB client", "error", err.Error())
-	}
-
-	t := template.Must(template.New("query").Parse(c.Poop.Query))
-
-	qd := struct {
-		Fields []string
-		Series string
-		Start  string
-		End    string
-	}{
-		Fields: c.Poop.Fields,
-		Series: c.Gulp.Series,
-		Start:  c.Poop.Start,
-		End:    c.Poop.End,
-	}
-
-	var query bytes.Buffer
-	t.Execute(&query, qd)
-	res, err := i.Query(query.String())
-	if err != nil {
-		a.log.Infof("Query was: %s", query)
-		a.log.Fatalw("Could not query InfluxDB", "error", err.Error())
-	}
-
-	wr := csv.NewWriter(os.Stdout)
-	wr.Write(c.Poop.Fields)
-	wr.Flush()
-	for _, chunk := range res {
-		if len(chunk.Series) < 1 {
-			continue
+	/*
+		c, err := NewConf(a.cfgFile, true)
+		if err != nil {
+			log.Fatal(err)
 		}
-		for _, point := range chunk.Series[0].Values {
-			for i, elem := range point {
-				if i != 0 {
-					fmt.Printf(c.Poop.Separator)
-					switch elem := elem.(type) {
-					default:
-						if elem == nil {
-							fmt.Printf(c.Poop.ReplaceNil)
-						} else {
-							fmt.Printf("%v", elem)
+
+		i, err := sink.New(c.Gulp)
+		if err != nil {
+			a.log.Fatalw("Could not create sink", "error", err.Error())
+		}
+
+		t := template.Must(template.New("query").Parse(c.Poop.Query))
+
+		qd := struct {
+			Fields []string
+			Series string
+			Start  string
+			End    string
+		}{
+			Fields: c.Poop.Fields,
+			Series: c.Gulp.Series,
+			Start:  c.Poop.Start,
+			End:    c.Poop.End,
+		}
+
+		var query bytes.Buffer
+		t.Execute(&query, qd)
+		res, err := i.Query(query.String())
+		if err != nil {
+			a.log.Infof("Query was: %s", query)
+			a.log.Fatalw("Could not query sink", "error", err.Error())
+		}
+
+		wr := csv.NewWriter(os.Stdout)
+		wr.Write(c.Poop.Fields)
+		wr.Flush()
+		for _, chunk := range res {
+			if len(chunk.Series) < 1 {
+				continue
+			}
+			for _, point := range chunk.Series[0].Values {
+				for i, elem := range point {
+					if i != 0 {
+						fmt.Printf(c.Poop.Separator)
+						switch elem := elem.(type) {
+						default:
+							if elem == nil {
+								fmt.Printf(c.Poop.ReplaceNil)
+							} else {
+								fmt.Printf("%v", elem)
+							}
+						case json.Number:
+							number, err := elem.Float64()
+							if err != nil {
+								fmt.Println(err)
+								break
+							}
+							fmt.Printf("%.0f", number)
 						}
-					case json.Number:
-						number, err := elem.Float64()
+					} else {
+						ts, err := time.Parse("2006-01-02T15:04:05Z", elem.(string))
 						if err != nil {
 							fmt.Println(err)
 							break
 						}
-						fmt.Printf("%.0f", number)
+						fmt.Printf("%s", ts.Format(c.Poop.Format))
 					}
-				} else {
-					ts, err := time.Parse("2006-01-02T15:04:05Z", elem.(string))
-					if err != nil {
-						fmt.Println(err)
-						break
-					}
-					fmt.Printf("%s", ts.Format(c.Poop.Format))
 				}
+				fmt.Printf("\n")
 			}
-			fmt.Printf("\n")
 		}
-	}
-}
-
-func (a *App) initCmd(cmd *cobra.Command, args []string) {
-	c, err := NewConf(a.cfgFile, true)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	a.log.Infow("Going to create Timestream client")
-	t, err := NewTimestream(c.Gulp.Db, c.Gulp.Series, c.Gulp.Indicator, "eu-west-1")
-	if err != nil {
-		a.log.Fatal("Could net create Timestream client", "error", err.Error())
-	}
-
-	//a.log.Infof("Create InfluxDB %s", c.Gulp.Db)
-	//_, err = i.Query(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", c.Gulp.Db))
-	//if err != nil {
-	//	a.log.Fatal("Could not create database", "error", err.Error())
-	//}
-	//if a.cfg.initDelete {
-	//	a.log.Infow("Deleting existing timestamps")
-	//	i.DeleteLatestMarker()
-	//	if err != nil {
-	//		a.log.Fatal("Could not create database", "error", err.Error())
-	//	}
-	//}
-
-	timestamp := time.Now().Add(-(time.Hour * time.Duration(a.cfg.initOffset)))
-	if err := t.LatestMarker(timestamp, "init"); err != nil {
-		a.log.Fatal("Could save initial timestamp", "error", err.Error())
-	}
+	*/
 }
 
 func (a *App) burpCmd(cmd *cobra.Command, args []string) {
@@ -255,12 +223,18 @@ func (a *App) burpCmd(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	from, err := GetFromDate(c, a.cfg.initialMarkerOverwrite)
+	from, err := parseTimeString(a.cfg.from)
 	if err != nil {
-		a.log.Fatal("Could fetch 'from' date", "error", err.Error())
+		a.log.Fatal("Could not parse 'from' date", " error ", err.Error())
 	}
-	fmt.Println(from)
-	points := Ruminate(c, true, from, a.log)
+	to, err := parseTimeString(a.cfg.to)
+	if err != nil {
+		a.log.Fatal("Could not parse 'to' date ", " error ", err.Error())
+	}
+	a.log.Infof("Staring at %s", from.Format(time.RFC3339))
+	a.log.Infof("Ending at %s", to.Format(time.RFC3339))
+
+	points := Ruminate(c, true, from, to, a.log)
 
 	a.log.Infof("Printing sample data point\n")
 	for _, p := range points {
@@ -283,26 +257,33 @@ func (a *App) gulpCmd(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	from, err := GetFromDate(c, a.cfg.initialMarkerOverwrite)
+	from, err := parseTimeString(a.cfg.from)
 	if err != nil {
-		a.log.Fatal("Could fetch 'from' date", "error", err.Error())
+		a.log.Fatal("Could not parse 'from' date", " error ", err.Error())
 	}
-	points := Ruminate(c, false, from, a.log)
-
-	a.log.Infow("Going to create InfluxDB client")
-	t, err := NewTimestream(c.Gulp.Db, c.Gulp.Series, c.Gulp.Indicator, "eu-west-1")
+	to, err := parseTimeString(a.cfg.to)
 	if err != nil {
-		a.log.Fatalw("Could not create InfluxDB client", "error", err.Error())
+		a.log.Fatal("Could not parse 'to' date ", " error ", err.Error())
+	}
+	a.log.Infof("Staring at %s", from.Format(time.RFC3339))
+	a.log.Infof("Ending at %s", to.Format(time.RFC3339))
+
+	points := Ruminate(c, false, from, to, a.log)
+
+	a.log.Infow("Going to create sink")
+	t, err := sink.New(c.Gulp)
+	if err != nil {
+		a.log.Fatalw("Could not create sink", "error", err.Error())
 	}
 
 	if len(points) < 1 {
 		a.log.Infow("No data points to save")
 		os.Exit(0)
 	}
-	a.log.Infof("Saving %d data points to InfluxDB", len(points))
+	a.log.Infof("Saving %d data points to sink", len(points))
 	err = t.Write(points)
 	if err != nil {
-		a.log.Fatalw("Could not write data to InfluxDB", "error", err.Error())
+		a.log.Fatalw("Could not write data to sink", "error", err.Error())
 	}
 	a.log.Infow("Data points saved")
 }
