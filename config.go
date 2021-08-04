@@ -3,10 +3,15 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"ruminant/sink"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"gopkg.in/yaml.v2"
 )
 
@@ -97,21 +102,69 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 		},
 	}
 
-	if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
-		if mustExist {
-			err = fmt.Errorf("config file %s does not exist", cfgFile)
-			return conf, err
-		}
-		return conf, nil
-	}
-
-	file, err := ioutil.ReadFile(cfgFile)
+	u, err := url.Parse(cfgFile)
 	if err != nil {
-		err = fmt.Errorf("error while reading %s: %s", cfgFile, err.Error())
 		return conf, err
 	}
 
-	err = yaml.Unmarshal(file, &conf)
+	data := []byte{}
+
+	if u.Scheme == "" {
+		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+			if mustExist {
+				err = fmt.Errorf("config file %s does not exist", cfgFile)
+				return conf, err
+			}
+			return conf, nil
+		}
+
+		data, err = ioutil.ReadFile(u.Path)
+		if err != nil {
+			err = fmt.Errorf("error while reading %s: %s", cfgFile, err.Error())
+			return conf, err
+		}
+	} else if u.Scheme == "http" || u.Scheme == "https" {
+		resp, err := http.Get(u.String())
+		if err != nil {
+			err = fmt.Errorf("error while fetching %s: %s", cfgFile, err.Error())
+			return conf, err
+		}
+		defer resp.Body.Close()
+
+		data, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			err = fmt.Errorf("error while reading body of %s: %s", cfgFile, err.Error())
+			return conf, err
+		}
+	} else if u.Scheme == "s3" {
+		sess, _ := session.NewSession(&aws.Config{})
+		if err != nil {
+			err = fmt.Errorf("error while creating s3 client to read %s: %s", cfgFile, err.Error())
+			return conf, err
+		}
+		s3Client := s3.New(sess)
+		input := &s3.GetObjectInput{
+			Bucket: aws.String(u.Host),
+			Key:    aws.String(u.Path),
+		}
+
+		result, err := s3Client.GetObject(input)
+		if err != nil {
+			err = fmt.Errorf("error while reading object %s: %s", cfgFile, err.Error())
+			return conf, err
+		}
+		defer result.Body.Close()
+		data, err = ioutil.ReadAll(result.Body)
+		if err != nil {
+			err = fmt.Errorf("error while reading body of %s: %s", cfgFile, err.Error())
+			return conf, err
+		}
+	} else {
+		err = fmt.Errorf("cannot read %s: unsupported protocol %s", cfgFile, u.Scheme)
+		return conf, err
+	}
+
+	err = yaml.Unmarshal(data, &conf)
 	if err != nil {
 		err = fmt.Errorf("error while parsing %s: %s", cfgFile, err.Error())
 		return conf, err
