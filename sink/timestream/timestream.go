@@ -78,7 +78,6 @@ func (t Timestream) Write(points []sink.Point) error {
 
 	version := time.Now().Round(time.Millisecond).UnixNano()
 	records := []*timestreamwrite.Record{}
-	var newest time.Time
 	for _, p := range points {
 		// get dimensions from tags
 		dimensions := []*timestreamwrite.Dimension{}
@@ -102,10 +101,6 @@ func (t Timestream) Write(points []sink.Point) error {
 				TimeUnit:         aws.String("SECONDS"),
 			}
 			records = append(records, r)
-		}
-
-		if p.Timestamp.After(newest) {
-			newest = p.Timestamp
 		}
 	}
 

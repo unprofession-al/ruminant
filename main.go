@@ -23,13 +23,19 @@ func main() {
 }
 
 type LambdaEvent struct {
-	Args string `json:"args"`
+	Command string            `json:"command"`
+	Args    map[string]string `json:"args"`
 }
 
 func launchAsLambda(ctx context.Context, e LambdaEvent) (string, error) {
 	// read args from event
-	args := append([]string{os.Args[0]}, strings.Split(e.Args, " ")...)
+	args := append([]string{os.Args[0]}, e.Command)
+	for k, v := range e.Args {
+		args = append(args, k)
+		args = append(args, v)
+	}
 	os.Args = args
+	fmt.Println(strings.Join(os.Args, " "))
 
 	// run
 	err := launch()

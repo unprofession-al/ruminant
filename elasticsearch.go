@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -52,13 +51,9 @@ type EsResponse struct {
 	} `json:"aggregations"`
 }
 
-func NewEsResponse(in io.Reader) (EsResponse, error) {
+func NewEsResponse(body []byte) (EsResponse, error) {
 	var response EsResponse
-	body, err := ioutil.ReadAll(in)
-	if err != nil {
-		return response, err
-	}
-	err = json.Unmarshal(body, &response)
+	err := json.Unmarshal(body, &response)
 	if err != nil {
 		return response, fmt.Errorf("elasticsearch error '%s' occurred on line", err.Error())
 	}
@@ -89,7 +84,8 @@ func NewElasticSearch(proto, host, user, pass string, port int) ElasticSearch {
 
 func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error) {
 	var esr EsResponse
-	url := fmt.Sprintf("%s://%s:%d/%s/%s/_search?pretty", es.Proto, es.Host, es.Port, index, kind)
+	url := fmt.Sprintf("%s://%s/%s/%s/_search?pretty", es.Proto, es.Host, index, kind)
+	//url := fmt.Sprintf("%s://%s:%d/%s/%s/_search?pretty", es.Proto, es.Host, es.Port, index, kind)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonQuery)))
 	if err != nil {
 		return esr, err
@@ -108,7 +104,12 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 	}
 	defer resp.Body.Close()
 
-	esr, err = NewEsResponse(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return esr, err
+	}
+
+	esr, err = NewEsResponse(body)
 	if err != nil {
 		return esr, err
 	}
