@@ -23,7 +23,7 @@ func Ruminate(c Config, burp bool, from, to time.Time, l *zap.SugaredLogger) []s
 		ToEsTimestamp(to),
 	}
 
-	es := NewElasticSearch(c.Regurgitate.Proto, c.Regurgitate.Host, c.Regurgitate.User, c.Regurgitate.Password, c.Regurgitate.Port)
+	es := NewElasticSearch(c.Regurgitate.BaseURL, c.Regurgitate.User, c.Regurgitate.Password)
 
 	sampledQueries := make(map[time.Time][]string)
 	interv := c.Regurgitate.Sampler.Interval

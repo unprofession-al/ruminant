@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"ruminant/sink"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,9 +32,7 @@ type PoopConf struct {
 }
 
 type RegurgitateConf struct {
-	Host     string        `yaml:"host"`
-	Port     int           `yaml:"port"`
-	Proto    string        `yaml:"proto"`
+	BaseURL  string        `yaml:"base_url"`
 	User     string        `yaml:"user"`
 	Password string        `yaml:"password"`
 	Index    string        `yaml:"index"`
@@ -87,9 +86,8 @@ func (i Iterator) GetStructure() (tags []string, values []string) {
 func NewConf(cfgFile string, mustExist bool) (Config, error) {
 	conf := Config{
 		Regurgitate: RegurgitateConf{
-			Port:  9200,
-			Proto: "http",
-			Index: "logstash-*",
+			BaseURL: "http://localhost:9200/",
+			Index:   "logstash-*",
 			Sampler: SamplerConfig{
 				Samples: 1,
 			},
@@ -169,6 +167,8 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 		err = fmt.Errorf("error while parsing %s: %s", cfgFile, err.Error())
 		return conf, err
 	}
+
+	conf.Regurgitate.BaseURL = strings.TrimRight(conf.Regurgitate.BaseURL, "/")
 
 	if len(conf.Poop.Fields) < 1 {
 		fields := []string{"time"}

@@ -34,6 +34,7 @@ func (c Config) Validate() ([]string, error) {
 // backend such as InfluxDB.
 type Sink interface {
 	Write(points []Point) error
+	Close()
 	//Query(cmd string) (res []client.Result, err error)
 }
 

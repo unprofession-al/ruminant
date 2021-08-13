@@ -286,6 +286,7 @@ func (a *App) gulpCmd(cmd *cobra.Command, args []string) {
 		a.log.Fatalw("Could not write data to sink", "error", err.Error())
 	}
 	a.log.Infow("Data points saved")
+	t.Close()
 }
 
 func (a *App) versionCmd(cmd *cobra.Command, args []string) {

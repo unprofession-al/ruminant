@@ -65,26 +65,22 @@ func (esr EsResponse) AggsAsJSON() ([]byte, error) {
 }
 
 type ElasticSearch struct {
-	Proto string
-	Host  string
-	User  string
-	Pass  string
-	Port  int
+	BaseURL string
+	User    string
+	Pass    string
 }
 
-func NewElasticSearch(proto, host, user, pass string, port int) ElasticSearch {
+func NewElasticSearch(baseURL, user, pass string) ElasticSearch {
 	return ElasticSearch{
-		Proto: proto,
-		Host:  host,
-		User:  user,
-		Pass:  pass,
-		Port:  port,
+		BaseURL: baseURL,
+		User:    user,
+		Pass:    pass,
 	}
 }
 
 func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error) {
 	var esr EsResponse
-	url := fmt.Sprintf("%s://%s/%s/%s/_search?pretty", es.Proto, es.Host, index, kind)
+	url := fmt.Sprintf("%s/%s/%s/_search?pretty", es.BaseURL, index, kind)
 	//url := fmt.Sprintf("%s://%s:%d/%s/%s/_search?pretty", es.Proto, es.Host, es.Port, index, kind)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonQuery)))
 	if err != nil {

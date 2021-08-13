@@ -125,3 +125,7 @@ func (t Timestream) Write(points []sink.Point) error {
 
 	return nil
 }
+
+func (t Timestream) Close() {
+	return
+}
