@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"gopkg.in/yaml.v2"
 )
 
@@ -32,13 +33,14 @@ type PoopConf struct {
 }
 
 type RegurgitateConf struct {
-	BaseURL  string        `yaml:"base_url"`
-	User     string        `yaml:"user"`
-	Password string        `yaml:"password"`
-	Index    string        `yaml:"index"`
-	Type     string        `yaml:"type"`
-	Query    string        `yaml:"query"`
-	Sampler  SamplerConfig `yaml:"sampler"`
+	BaseURL   string            `yaml:"base_url"`
+	User      string            `yaml:"user"`
+	Password  string            `yaml:"password"`
+	Index     string            `yaml:"index"`
+	Type      string            `yaml:"type"`
+	Query     string            `yaml:"query"`
+	Sampler   SamplerConfig     `yaml:"sampler"`
+	QueryArgs map[string]string `yaml:"query_args"`
 }
 
 type SamplerConfig struct {
@@ -50,6 +52,7 @@ type SamplerConfig struct {
 
 type RuminateConf struct {
 	Iterator Iterator `yaml:"iterator"`
+	NoTrim   bool     `yaml:"no_trim"`
 }
 
 type Iterator struct {
@@ -135,18 +138,19 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 			return conf, err
 		}
 	} else if u.Scheme == "s3" {
-		sess, _ := session.NewSession(&aws.Config{})
+		awscfg, err := config.LoadDefaultConfig(context.TODO())
 		if err != nil {
 			err = fmt.Errorf("error while creating s3 client to read %s: %s", cfgFile, err.Error())
 			return conf, err
 		}
-		s3Client := s3.New(sess)
+
+		s3Client := s3.NewFromConfig(awscfg)
 		input := &s3.GetObjectInput{
 			Bucket: aws.String(u.Host),
-			Key:    aws.String(u.Path),
+			Key:    aws.String(strings.TrimPrefix(u.Path, "/")),
 		}
 
-		result, err := s3Client.GetObject(input)
+		result, err := s3Client.GetObject(context.TODO(), input)
 		if err != nil {
 			err = fmt.Errorf("error while reading object %s: %s", cfgFile, err.Error())
 			return conf, err

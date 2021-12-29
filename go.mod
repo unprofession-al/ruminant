@@ -4,7 +4,11 @@ go 1.13
 
 require (
 	github.com/aws/aws-lambda-go v1.26.0
-	github.com/aws/aws-sdk-go v1.35.35
+	github.com/aws/aws-sdk-go-v2 v1.11.2
+	github.com/aws/aws-sdk-go-v2/config v1.11.1
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.22.0
+	github.com/aws/aws-sdk-go-v2/service/timestreamquery v1.9.0
+	github.com/aws/aws-sdk-go-v2/service/timestreamwrite v1.9.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/influxdata/influxdb-client-go/v2 v2.4.0
 	github.com/kr/pretty v0.2.0 // indirect

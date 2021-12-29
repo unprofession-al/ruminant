@@ -23,7 +23,7 @@ func Ruminate(c Config, burp bool, from, to time.Time, l *zap.SugaredLogger) []s
 		ToEsTimestamp(to),
 	}
 
-	es := NewElasticSearch(c.Regurgitate.BaseURL, c.Regurgitate.User, c.Regurgitate.Password)
+	es := NewElasticSearch(c.Regurgitate.BaseURL, c.Regurgitate.User, c.Regurgitate.Password, c.Regurgitate.QueryArgs)
 
 	sampledQueries := make(map[time.Time][]string)
 	interv := c.Regurgitate.Sampler.Interval
@@ -77,7 +77,7 @@ func Ruminate(c Config, burp bool, from, to time.Time, l *zap.SugaredLogger) []s
 					fmt.Printf("\n%s\n\n", jsonFragment)
 				}
 			} else {
-				sample, err = Chew(j, c.Ruminate.Iterator, p)
+				sample, err = Chew(j, c.Ruminate.Iterator, p, c.Ruminate.NoTrim)
 			}
 			if err != nil {
 				l.Fatalw("Could not process data", "error", err.Error())
@@ -91,7 +91,7 @@ func Ruminate(c Config, burp bool, from, to time.Time, l *zap.SugaredLogger) []s
 			samples = sink.PointAvg(samples, c.Regurgitate.Sampler.Samples)
 		}
 		points = append(points, samples...)
-		l.Infof("%d of %d queries run and processed", processed, len(sampledQueries)*c.Regurgitate.Sampler.Samples)
+		l.Infof("%d of %d queries run and processed, %d points fetched so far", processed, len(sampledQueries)*c.Regurgitate.Sampler.Samples, len(points))
 	}
 
 	return points

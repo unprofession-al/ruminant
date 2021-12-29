@@ -57,6 +57,7 @@ func NewEsResponse(body []byte) (EsResponse, error) {
 	if err != nil {
 		return response, fmt.Errorf("elasticsearch error '%s' occurred on line", err.Error())
 	}
+	//fmt.Println(response)
 	return response, nil
 }
 
@@ -65,27 +66,38 @@ func (esr EsResponse) AggsAsJSON() ([]byte, error) {
 }
 
 type ElasticSearch struct {
-	BaseURL string
-	User    string
-	Pass    string
+	BaseURL   string
+	User      string
+	Pass      string
+	QueryArgs map[string]string
 }
 
-func NewElasticSearch(baseURL, user, pass string) ElasticSearch {
+func NewElasticSearch(baseURL, user, pass string, queryArgs map[string]string) ElasticSearch {
 	return ElasticSearch{
-		BaseURL: baseURL,
-		User:    user,
-		Pass:    pass,
+		BaseURL:   baseURL,
+		User:      user,
+		Pass:      pass,
+		QueryArgs: queryArgs,
 	}
 }
 
 func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error) {
 	var esr EsResponse
-	url := fmt.Sprintf("%s/%s/%s/_search?pretty", es.BaseURL, index, kind)
-	//url := fmt.Sprintf("%s://%s:%d/%s/%s/_search?pretty", es.Proto, es.Host, es.Port, index, kind)
+	queryArgs := "?pretty"
+	for k, v := range es.QueryArgs {
+		if v == "" {
+			queryArgs = fmt.Sprintf("%s&%s", queryArgs, k)
+		} else {
+			queryArgs = fmt.Sprintf("%s&%s=%s", queryArgs, k, v)
+		}
+	}
+	url := fmt.Sprintf("%s/%s/%s/_search%s", es.BaseURL, index, kind, queryArgs)
+	//fmt.Println(url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonQuery)))
 	if err != nil {
 		return esr, err
 	}
+	//fmt.Println(jsonQuery)
 
 	if es.User != "" && es.Pass != "" {
 		req.SetBasicAuth(es.User, es.Pass)
@@ -105,17 +117,22 @@ func (es ElasticSearch) Query(index, kind, jsonQuery string) (EsResponse, error)
 		return esr, err
 	}
 
+	//fmt.Println(string(body))
 	esr, err = NewEsResponse(body)
 	if err != nil {
 		return esr, err
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return esr, fmt.Errorf("error while executing query, status code %d, output %s", resp.StatusCode, err)
+		return esr, fmt.Errorf("error while executing query, status code %d, output %s", resp.StatusCode, string(body))
 	}
 
 	if esr.Shards.Failed > 0 {
-		return esr, fmt.Errorf("%d of %d shards failed while executing query", esr.Shards.Failed, esr.Shards.Total)
+		errors := ""
+		for _, failed := range esr.Shards.Failures {
+			errors += " >>> " + failed.Reason.Reason
+		}
+		return esr, fmt.Errorf("%d of %d shards failed while executing query, errors are: %s", esr.Shards.Failed, esr.Shards.Total, errors)
 	}
 
 	return esr, nil

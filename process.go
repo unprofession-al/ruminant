@@ -20,12 +20,15 @@ func Burp(j []byte, i Iterator, inherited sink.Point) ([]sink.Point, string, err
 	return points, jsonFragment, err
 }
 
-func Chew(j []byte, i Iterator, inherited sink.Point) ([]sink.Point, error) {
+func Chew(j []byte, i Iterator, inherited sink.Point, noTrim bool) ([]sink.Point, error) {
 	var points []sink.Point
 	if i.Selector == "" {
 		return points, fmt.Errorf("no selector definded")
 	}
 	points, _, _, err := process(j, i, inherited, false)
+	if !noTrim {
+		points, _, _ = sink.TrimPoints(points)
+	}
 	return points, err
 }
 

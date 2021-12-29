@@ -44,6 +44,28 @@ func PointAvg(points []Point, samples int) []Point {
 	return measurements
 }
 
+func TrimPoints(points []Point) ([]Point, time.Time, time.Time) {
+	earliest := time.Now()
+	var latest time.Time
+	for _, p := range points {
+		if p.Timestamp.Before(earliest) {
+			earliest = p.Timestamp
+		}
+		if p.Timestamp.After(latest) {
+			latest = p.Timestamp
+		}
+	}
+
+	var out []Point
+	for _, p := range points {
+		if p.Timestamp != earliest && p.Timestamp != latest {
+			out = append(out, p)
+		}
+	}
+
+	return out, earliest, latest
+}
+
 func (p Point) String() string {
 	out := new(bytes.Buffer)
 	timestamp := p.Timestamp.Format("2006-01-02 15:04:05")

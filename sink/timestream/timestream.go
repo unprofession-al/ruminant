@@ -1,6 +1,7 @@
 package timestream
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -8,10 +9,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/timestreamquery"
-	"github.com/aws/aws-sdk-go/service/timestreamwrite"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/timestreamquery"
+	"github.com/aws/aws-sdk-go-v2/service/timestreamwrite"
+	"github.com/aws/aws-sdk-go-v2/service/timestreamwrite/types"
 	"golang.org/x/net/http2"
 )
 
@@ -21,24 +23,24 @@ func init() {
 
 type Timestream struct {
 	DB          string
-	WriteClient *timestreamwrite.TimestreamWrite
-	QueryClient *timestreamquery.TimestreamQuery
+	WriteClient *timestreamwrite.Client
+	QueryClient *timestreamquery.Client
 	Series      string
 }
 
-func setup(config map[string]string) (sink.Sink, error) {
+func setup(c map[string]string) (sink.Sink, error) {
 	t := Timestream{}
 
 	var db, series, region string
 	var found bool
 
-	if db, found = config["db"]; !found || db == "" {
+	if db, found = c["db"]; !found || db == "" {
 		return t, fmt.Errorf("sink requires field 'db' to be set")
 	}
-	if series, found = config["series"]; !found || series == "" {
+	if series, found = c["series"]; !found || series == "" {
 		return t, fmt.Errorf("sink requires field 'series' to be set")
 	}
-	if region, found = config["region"]; !found || region == "" {
+	if region, found = c["region"]; !found || region == "" {
 		return t, fmt.Errorf("sink requires field 'region' to be set")
 	}
 
@@ -58,12 +60,13 @@ func setup(config map[string]string) (sink.Sink, error) {
 
 	http2.ConfigureTransport(tr)
 
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(region), MaxRetries: aws.Int(10), HTTPClient: &http.Client{Transport: tr}})
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	//sess, err := session.NewSession(&aws.Config{Region: aws.String(region), MaxRetries: aws.Int(10), HTTPClient: &http.Client{Transport: tr}})
 	if err != nil {
 		return t, err
 	}
-	t.WriteClient = timestreamwrite.New(sess)
-	t.QueryClient = timestreamquery.New(sess)
+	t.WriteClient = timestreamwrite.NewFromConfig(cfg)
+	t.QueryClient = timestreamquery.NewFromConfig(cfg)
 
 	t.DB = db
 	t.Series = series
@@ -77,12 +80,12 @@ func (t Timestream) Write(points []sink.Point) error {
 	}
 
 	version := time.Now().Round(time.Millisecond).UnixNano()
-	records := []*timestreamwrite.Record{}
+	records := []types.Record{}
 	for _, p := range points {
 		// get dimensions from tags
-		dimensions := []*timestreamwrite.Dimension{}
+		dimensions := []types.Dimension{}
 		for k, v := range p.Tags {
-			d := &timestreamwrite.Dimension{
+			d := types.Dimension{
 				Name:  aws.String(k),
 				Value: aws.String(v),
 			}
@@ -91,14 +94,14 @@ func (t Timestream) Write(points []sink.Point) error {
 
 		// get records
 		for k, v := range p.Values {
-			r := &timestreamwrite.Record{
-				Version:          &version,
+			r := types.Record{
+				Version:          version,
 				Dimensions:       dimensions,
 				MeasureName:      aws.String(k),
 				MeasureValue:     aws.String(fmt.Sprintf("%v", v)),
-				MeasureValueType: aws.String("DOUBLE"),
+				MeasureValueType: "DOUBLE",
 				Time:             aws.String(strconv.FormatInt(p.Copy().Timestamp.Unix(), 10)),
-				TimeUnit:         aws.String("SECONDS"),
+				TimeUnit:         "SECONDS",
 			}
 			records = append(records, r)
 		}
@@ -118,7 +121,7 @@ func (t Timestream) Write(points []sink.Point) error {
 			Records:      records[i:end],
 		}
 
-		if _, err := t.WriteClient.WriteRecords(chunk); err != nil {
+		if _, err := t.WriteClient.WriteRecords(context.TODO(), chunk); err != nil {
 			return err
 		}
 	}
