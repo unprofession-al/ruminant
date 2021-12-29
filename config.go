@@ -108,7 +108,7 @@ func NewConf(cfgFile string, mustExist bool) (Config, error) {
 		return conf, err
 	}
 
-	data := []byte{}
+	var data []byte
 
 	if u.Scheme == "" {
 		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {

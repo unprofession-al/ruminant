@@ -128,12 +128,12 @@ func query(j []byte, q string) (interface{}, error) {
 	var umsg jee.BMsg
 	l, err := jee.Lexer(q)
 	if err != nil {
-		return nil, fmt.Errorf("Lexer error: %s", err.Error())
+		return nil, fmt.Errorf("lexer error: %s", err.Error())
 	}
 
 	tree, err := jee.Parser(l)
 	if err != nil {
-		return nil, fmt.Errorf("Parser error: %s", err.Error())
+		return nil, fmt.Errorf("parser error: %s", err.Error())
 	}
 
 	err = json.Unmarshal(j, &umsg)
@@ -144,7 +144,7 @@ func query(j []byte, q string) (interface{}, error) {
 	result, err := jee.Eval(tree, umsg)
 	if err != nil {
 		fmt.Printf("\n\n---\n\n%s\n\n---\n\n", j)
-		return nil, fmt.Errorf("Eval error: %s", err.Error())
+		return nil, fmt.Errorf("eval error: %s", err.Error())
 	}
 	return result, nil
 }
