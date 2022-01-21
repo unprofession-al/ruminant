@@ -35,20 +35,7 @@ type EsResponse struct {
 		MaxScore interface{}   `json:"max_score"`
 		Hits     []interface{} `json:"hits"`
 	} `json:"hits"`
-	Aggregations struct {
-		OverTime struct {
-			Buckets []struct {
-				KeyAsString time.Time `json:"key_as_string"`
-				Key         int64     `json:"key"`
-				DocCount    int       `json:"doc_count"`
-				ByDomain    struct {
-					DocCountErrorUpperBound int           `json:"doc_count_error_upper_bound"`
-					SumOtherDocCount        int           `json:"sum_other_doc_count"`
-					Buckets                 []interface{} `json:"buckets"`
-				} `json:"by_domain"`
-			} `json:"buckets"`
-		} `json:"over_time"`
-	} `json:"aggregations"`
+	Aggregations interface{} `json:"aggregations"`
 }
 
 func NewEsResponse(body []byte) (EsResponse, error) {

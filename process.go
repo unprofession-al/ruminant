@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"ruminant/sink"
 	"strings"
 	"time"
 
-	jee "github.com/nytlabs/gojee"
+	"github.com/itchyny/gojq"
 )
 
 func Burp(j []byte, i Iterator, inherited sink.Point) ([]sink.Point, string, error) {
@@ -36,7 +37,7 @@ func process(j []byte, i Iterator, inherited sink.Point, test bool) ([]sink.Poin
 	var results []sink.Point
 	// fmt.Printf("\n\n---\n\n%s\n\n---\n\n", j)
 
-	selected, err := queryBytes(j, i.Selector)
+	selected, err := queryArrayBytes(j, i.Selector)
 	if err != nil {
 		return results, false, "", err
 	}
@@ -57,7 +58,7 @@ func process(j []byte, i Iterator, inherited sink.Point, test bool) ([]sink.Poin
 		}
 
 		if i.Time != "" {
-			out, err := query(elem, i.Time)
+			out, err := queryObject(elem, i.Time)
 			if err != nil {
 				return results, false, "", err
 			}
@@ -69,7 +70,7 @@ func process(j []byte, i Iterator, inherited sink.Point, test bool) ([]sink.Poin
 		}
 
 		for key, selector := range i.Values {
-			out, err := query(elem, selector)
+			out, err := queryObject(elem, selector)
 			if err != nil {
 				return results, false, "", err
 			}
@@ -81,7 +82,7 @@ func process(j []byte, i Iterator, inherited sink.Point, test bool) ([]sink.Poin
 		}
 
 		for key, selector := range i.Tags {
-			out, err := queryBytes(elem, selector)
+			out, err := queryObjectBytes(elem, selector)
 			if err != nil {
 				return results, false, "", err
 			}
@@ -115,36 +116,83 @@ func process(j []byte, i Iterator, inherited sink.Point, test bool) ([]sink.Poin
 	return results, false, "", nil
 }
 
-func queryBytes(j []byte, q string) ([]byte, error) {
-	result, err := query(j, q)
+func queryArrayBytes(j []byte, q string) ([]byte, error) {
+	//fmt.Println("queryArrayBytes")
+	result, err := queryArray(j, q)
 	if err != nil {
 		return []byte{}, err
 	}
 	return json.Marshal(result)
 }
 
-func query(j []byte, q string) (interface{}, error) {
+func queryArray(j []byte, q string) ([]interface{}, error) {
 	j = bytes.ReplaceAll(j, []byte("buckets\":null"), []byte("buckets\":[]"))
-	var umsg jee.BMsg
-	l, err := jee.Lexer(q)
-	if err != nil {
-		return nil, fmt.Errorf("lexer error: %s", err.Error())
-	}
+	//fmt.Println("queryArray")
+	//fmt.Println(string(j))
+	//fmt.Println(q)
 
-	tree, err := jee.Parser(l)
-	if err != nil {
-		return nil, fmt.Errorf("parser error: %s", err.Error())
-	}
-
-	err = json.Unmarshal(j, &umsg)
+	var input map[string]interface{}
+	err := json.Unmarshal(j, &input)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := jee.Eval(tree, umsg)
+	query, err := gojq.Parse(q)
 	if err != nil {
-		fmt.Printf("\n\n---\n\n%s\n\n---\n\n", j)
-		return nil, fmt.Errorf("eval error: %s", err.Error())
+		log.Fatalln(err)
 	}
-	return result, nil
+
+	var out []interface{}
+	iter := query.Run(input) // or query.RunWithContext
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			return out, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func queryObjectBytes(j []byte, q string) ([]byte, error) {
+	//fmt.Println("queryObjectBytes")
+	result, err := queryObject(j, q)
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(result)
+}
+func queryObject(j []byte, q string) (interface{}, error) {
+	j = bytes.ReplaceAll(j, []byte("buckets\":null"), []byte("buckets\":[]"))
+	//fmt.Println("queryObject")
+	//fmt.Println(string(j))
+	//fmt.Println(q)
+
+	var input map[string]interface{}
+	err := json.Unmarshal(j, &input)
+	if err != nil {
+		return nil, err
+	}
+
+	query, err := gojq.Parse(q)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var out interface{}
+	iter := query.Run(input) // or query.RunWithContext
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			return out, err
+		}
+		out = v
+	}
+	return out, nil
 }

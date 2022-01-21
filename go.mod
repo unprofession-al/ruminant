@@ -11,8 +11,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/timestreamwrite v1.9.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/influxdata/influxdb-client-go/v2 v2.4.0
+	github.com/itchyny/gojq v0.12.6
 	github.com/kr/pretty v0.2.0 // indirect
-	github.com/nytlabs/gojee v0.0.0-20140331152115-5a79a1542dc0
 	github.com/spf13/cobra v0.0.0-20170905172051-b78744579491
 	github.com/spf13/pflag v1.0.1-0.20170901120850-7aff26db30c1 // indirect
 	github.com/tj/go-naturaldate v1.3.0
